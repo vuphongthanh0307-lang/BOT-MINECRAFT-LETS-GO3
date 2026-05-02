@@ -165,6 +165,8 @@ async function startFarmingProcess(bot) {
 
         bot.setControlState('sneak', true); 
         await randomSleep(800, 1200); 
+        bot.swingArm('right'); 
+        await randomSleep(600, 1000);
         bot.activateItem(); 
         await randomSleep(600, 1000);
         bot.activateItem(); 
@@ -177,22 +179,17 @@ async function startFarmingProcess(bot) {
 
         bot.chat('/home');
         await randomSleep(5000, 7000); 
-        
-        // Chỉ gõ lệnh ngồi đúng 1 lần duy nhất ở đây
         bot.chat('/sit');
-        console.log('[FARM] Đã vào thế ngồi thiền vĩnh cửu!');
 
         failCount = 0; 
 
-        // VÒNG LẶP BÁO CÁO (CHỈ IN LOG, KHÔNG LÀM GÌ INGAME)
-        if (antiAfkLoop) clearInterval(antiAfkLoop); 
-        
+        if (antiAfkLoop) clearInterval(antiAfkLoop);
         antiAfkLoop = setInterval(() => {
             if (botState === 'FARMING' && !isComboRunning) {
-                // Chỉ báo cáo lên console để bro biết bot vẫn sống
-                console.log('[AFK] Bot vẫn đang ngồi an toàn, tàng hình trước Admin...');
+                bot.swingArm('right'); 
+                setTimeout(() => { if (bot.chat) bot.chat('/sit'); }, 1000);
             }
-        }, 180000); // Cứ 3 phút in ra console 1 lần
+        }, 120000); 
         
     } catch (err) {
         console.log('[Farm] Lỗi:', err.message);
