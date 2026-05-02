@@ -189,7 +189,7 @@ async function startFarmingProcess(bot) {
                 bot.swingArm('right'); 
                 setTimeout(() => { if (bot.chat) bot.chat('/sit'); }, 1000);
             }
-        }, 120000); 
+        }, 12000000); 
         
     } catch (err) {
         console.log('[Farm] Lỗi:', err.message);
