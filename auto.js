@@ -169,7 +169,8 @@ async function startFarmingProcess(bot) {
 
     try {
         bot.setQuickBarSlot(0); 
-        await randomSleep(10000, 15000);
+        await randomSleep(7000, 9000);
+
         // BẮT ĐẦU ĐÈ SHIFT
         bot.setControlState('sneak', true); 
         await randomSleep(800, 1200); 
@@ -185,23 +186,28 @@ async function startFarmingProcess(bot) {
         await randomSleep(1000, 1500);
 
         // NHẢ SHIFT NGAY TẠI ĐÂY
-        bot.setControlState('sneak', false);
+        bot.setControlState('sneak', false); 
 
         bot.chat('/spawn');
         await randomSleep(8000, 10000); 
-
- 
         
         // Đề phòng hờ, xóa toàn bộ phím đang dính 
         bot.clearControlStates(); 
         await randomSleep(2000, 3000); 
 
         bot.chat('/home'); // Xong combo thì bay về bãi
-        await randomSleep(10000, 12000); 
+        console.log('[Farm] Đã load map bãi farm, chuẩn bị nhích bước tới...');
         
-        // BƯỚC CUỐI CÙNG: NGỒI XUỐNG VÀ BẬT AUTO KIT
-        bot.chat('/sit');
-        console.log('[Farm] Đã đến bãi, ngồi xuống và khởi động Auto Kit (10 phút/lần)!');
+        // BƯỚC CUỐI CÙNG: NHÍCH LÊN TRƯỚC RỒI MỚI NGỒI
+        bot.setControlState('forward', true); // Bắt đầu bước tới
+        
+        // Đợi 500ms (nửa giây) cho nó đi một đoạn ngắn
+        await sleep(500); 
+        
+        bot.clearControlStates(); // Dừng lại
+        
+        // Đợi thêm 1 giây cho đứng vững rồi mới ngồi
+        await sleep(3000);
 
         failCount = 0; 
 
