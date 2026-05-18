@@ -2,7 +2,7 @@ const express = require('express');
 const mineflayer = require('mineflayer');
 const readline = require('readline'); // Kéo thêm module đọc bàn phím
 
-const RECONNECT_DELAY = 240000; // 3 phút vào lại 1 lần
+const RECONNECT_DELAY = 240000; // 4 phút vào lại 1 lần 
 
 // TẠO WEB SERVER (CHỐNG SLEEP)
 const app = express();
@@ -187,27 +187,41 @@ async function startFarmingProcess(bot) {
     try {
         bot.setQuickBarSlot(0); 
         await randomSleep(7000, 9000);
+        
         // BAY ĐẾN BÃI TRƯỚC RỒI MỚI MÚA TAY
         bot.chat('/spawn');
         await randomSleep(8000, 10000); 
 
         // ==========================================
-        // BƯỚC MỚI: CTRL + W CHẠY THỤC MẠNG 5 GIÂY
+        // BƯỚC MỚI: CTRL + W CHẠY THỤC MẠNG KÈM NHẢY
         // ==========================================
-        console.log('[Farm] Tới Spawn rồi, Ctrl + W phi lên phía trước 5 giây cho thoáng...');
+        console.log('[Farm] Tới Spawn rồi, Sprint-Jump phi lên phía trước 5 giây...');
         
         // Bật cả 2 phím: W (Tiến lên) và Ctrl (Chạy nhanh)
         bot.setControlState('forward', true); 
         bot.setControlState('sprint', true); 
+
+        // Hàm giúp bot nhảy lên 1 cái
+        const doJump = () => {
+            bot.setControlState('jump', true);
+            setTimeout(() => bot.setControlState('jump', false), 250); // Bấm Space 0.25s rồi nhả
+        };
         
-        // Đợi khoảng 5 giây (5000ms đến 5200ms)
+        // Lên lịch nhảy 3 nhịp xen kẽ nhau
+        setTimeout(doJump, 500);  // Nhịp 1: Nửa giây đầu nhảy
+        setTimeout(doJump, 2000); // Nhịp 2: Giây thứ 2 nhảy tiếp
+        setTimeout(doJump, 3500); // Nhịp 3: Giây 3.5 nhảy cái cuối
+        
+        // Đoạn từ 3.5s đến 5.0s bot sẽ chạy bộ dưới đất (không nhảy) để hạ cánh mượt
         await randomSleep(5000, 5200); 
         
         // Nhả toàn bộ phím ra để phanh gấp
         bot.clearControlStates(); 
         await randomSleep(500, 800); // Khựng lại thở một nhịp rồi mới lom khom múa tay
         
+        // ==========================================
         // BẮT ĐẦU ĐÈ SHIFT
+        // ==========================================
         bot.setControlState('sneak', true); 
         await randomSleep(800, 1200); 
         
@@ -234,12 +248,16 @@ async function startFarmingProcess(bot) {
         await randomSleep(10000, 12000); // Tăng delay xíu cho map load xong
         
         console.log('[Farm] Đã load map bãi farm, chuẩn bị nhích bước tới...');
-    
         
-        // Đợi thêm 1 giây cho đứng vững rồi mới ngồi (ĐÃ BỔ SUNG LỆNH /SIT)
+        // BƯỚC CUỐI CÙNG: NHÍCH LÊN TRƯỚC RỒI MỚI NGỒI (Đã vá lại)
+        bot.setControlState('forward', true); 
+        await sleep(500); 
+        bot.clearControlStates(); 
+        
+        // Đợi thêm 1 giây cho đứng vững rồi mới ngồi 
         await sleep(1000);
         bot.chat('/sit');
-        console.log('[Farm] Đã nhích đúng vị trí, ngồi xuống và khởi động Auto Kit (10 phút/lần)!');
+        console.log('[Farm] Đã nhích đúng vị trí, ngồi xuống nhập định (Tắt Auto Kit)!');
 
         failCount = 0; 
 
