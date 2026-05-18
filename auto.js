@@ -2,7 +2,7 @@ const express = require('express');
 const mineflayer = require('mineflayer');
 const readline = require('readline'); // Kéo thêm module đọc bàn phím
 
-const RECONNECT_DELAY = 240000; // 4 phút vào lại 1 lần (theo code bro gửi là 240000)
+const RECONNECT_DELAY = 240000; // 3 phút vào lại 1 lần
 
 // TẠO WEB SERVER (CHỐNG SLEEP)
 const app = express();
@@ -186,25 +186,13 @@ async function startFarmingProcess(bot) {
 
     try {
         bot.setQuickBarSlot(0); 
-        await randomSleep(1500, 2000);
+        await randomSleep(7000, 9000);
 
-        // BAY ĐẾN BÃI TRƯỚC RỒI MỚI MÚA TAY
-        bot.chat('/spawn');
-        await randomSleep(8000, 10000); 
-
-        // ==========================================
-        // BƯỚC MỚI: ĐI LÊN KHOẢNG 2 GIÂY
-        // ==========================================
-        console.log('[Farm] Tới Spawn rồi, đi lên phía trước 2 giây cho thoáng...');
-        bot.setControlState('forward', true); // Bắt đầu nhấn phím W
-        await randomSleep(5000, 7000); // Đợi khoảng 2 giây
-        
-        bot.clearControlStates(); // Nhả phím W ra để dừng lại
-        await randomSleep(500, 800); // Khựng lại một nhịp nhỏ cho giống người thật trước khi múa
-        // BẮT ĐẦU ĐÈ SHIFT VÀ MÚA TAY
+        // BẮT ĐẦU ĐÈ SHIFT
         bot.setControlState('sneak', true); 
         await randomSleep(800, 1200); 
         
+        // COMBO TRÁI - PHẢI - PHẢI - PHẢI
         bot.swingArm('right'); 
         await randomSleep(600, 1000);
         bot.activateItem(); 
@@ -216,15 +204,30 @@ async function startFarmingProcess(bot) {
 
         // NHẢ SHIFT NGAY TẠI ĐÂY
         bot.setControlState('sneak', false); 
+
+        await randomSleep(8000, 10000); 
+        
+        // Đề phòng hờ, xóa toàn bộ phím đang dính 
         bot.clearControlStates(); 
         await randomSleep(2000, 3000); 
 
-        bot.chat('/home'); // Xong combo thì bay về bãi Farm
-        await randomSleep(10000, 12000); 
+        bot.chat('/home'); // Xong combo thì bay về bãi
+        await randomSleep(10000, 12000); // Tăng delay xíu cho map load xong
         
-        // BƯỚC CUỐI CÙNG: NGỒI XUỐNG VÀ BẬT AUTO KIT
+        console.log('[Farm] Đã load map bãi farm, chuẩn bị nhích bước tới...');
+        
+        // BƯỚC CUỐI CÙNG: NHÍCH LÊN TRƯỚC RỒI MỚI NGỒI
+        bot.setControlState('forward', true); // Bắt đầu bước tới
+        
+        // Đợi 500ms (nửa giây) cho nó đi một đoạn ngắn
+        await sleep(500); 
+        
+        bot.clearControlStates(); // Dừng lại
+        
+        // Đợi thêm 1 giây cho đứng vững rồi mới ngồi (ĐÃ BỔ SUNG LỆNH /SIT)
+        await sleep(1000);
         bot.chat('/sit');
-        console.log('[Farm] Đã đến bãi, ngồi xuống và khởi động Auto Kit (10 phút/lần)!');
+        console.log('[Farm] Đã nhích đúng vị trí, ngồi xuống và khởi động Auto Kit (10 phút/lần)!');
 
         failCount = 0; 
 
@@ -235,7 +238,7 @@ async function startFarmingProcess(bot) {
                 bot.chat('/kit tanthu');
                 console.log(`[${new Date().toLocaleTimeString()}] [Auto-Kit] Đã gõ /kit tanthu lụm đồ!`);
             }
-        }, 600000); // 10 phút
+        }, 600000); // 600000 ms = đúng 10 phút
         
     } catch (err) {
         console.log('[Farm] Lỗi:', err.message);
