@@ -243,14 +243,11 @@ async function startFarmingProcess(bot) {
 
         failCount = 0; 
 
-        // VÒNG LẶP CHỐNG AFK: ĐÚNG 10 PHÚT GÕ /KIT TANTHU 1 LẦN
-        if (antiAfkLoop) clearInterval(antiAfkLoop);
-        antiAfkLoop = setInterval(() => {
-            if (botState === 'FARMING' && !isComboRunning) {
-                bot.chat('/kit tanthu');
-                console.log(`[${new Date().toLocaleTimeString()}] [Auto-Kit] Đã gõ /kit tanthu lụm đồ!`);
-            }
-        }, 600000); // 600000 ms = đúng 10 phút
+        // XÓA BỎ HOÀN TOÀN AUTO KIT
+        if (antiAfkLoop) {
+            clearInterval(antiAfkLoop);
+            antiAfkLoop = null; 
+        }
         
     } catch (err) {
         console.log('[Farm] Lỗi:', err.message);
