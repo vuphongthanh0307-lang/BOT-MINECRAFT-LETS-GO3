@@ -2,12 +2,12 @@ const express = require('express');
 const mineflayer = require('mineflayer');
 const readline = require('readline'); // Kéo thêm module đọc bàn phím
 
-const RECONNECT_DELAY = 180000; // ĐÃ THÊM DELAY: 3 phút (180000 ms)
+const RECONNECT_DELAY = 200000; // 3 phút vào lại 1 lần
 
 // TẠO WEB SERVER (CHỐNG SLEEP)
 const app = express();
 const port = process.env.PORT || 3000;
-app.get('/', (req, res) => res.send('Bot của Wind đang Farm VIP Pro!'));
+app.get('/', (req, res) => res.send('Bot Fonggggg đang Farm VIP Pro!'));
 app.listen(port, () => console.log(`[Web] Server đang chạy trên port ${port}`));
 
 // KHIÊN BẤT TỬ
@@ -19,7 +19,7 @@ const randomSleep = (min, max) => sleep(Math.floor(Math.random() * (max - min + 
 
 // BIẾN TRẠNG THÁI & NGỦ ĐÔNG
 let botState = 'HUB'; 
-let currentBot; // Biến linh hồn để giữ kết nối Chat
+let currentBot; 
 let clickLoop; 
 let antiAfkLoop; 
 let isLoggingIn = false; 
@@ -35,13 +35,13 @@ function createBot() {
         version: '1.12.2',
         viewDistance: 'tiny', 
         checkTimeoutInterval: 90000,
-        respawn: false // LỆNH NÀY QUYẾT ĐỊNH VIỆC "PHƠI XÁC"
+        respawn: false 
     });
 
-    currentBot = bot; // Gán linh hồn bot để chát từ xa
+    currentBot = bot; 
 
     // ==========================================
-    // MẮT THẦN: SOI CHAT SERVER (CÓ MÀU NHƯ GAME)
+    // MẮT THẦN: SOI CHAT SERVER
     // ==========================================
     bot.on('message', (jsonMsg) => {
         if (jsonMsg.toAnsi) {
@@ -122,13 +122,7 @@ function createBot() {
     });
 
     bot.on('death', async () => {
-        // TÁCH RÕ THÔNG BÁO CHẾT Ở ĐÂU CHO BRO DỄ NHÌN
-        if (botState === 'HUB') {
-            console.log('[CẢNH BÁO] Bot chết ở Sảnh (Hub)! Đang nằm phơi xác tại trận địa...');
-        } else {
-            console.log('[CẢNH BÁO] Bot tử trận trong cụm Farm! Vẫn nằm im không làm gì cả...');
-        }
-        
+        console.log('[CẢNH BÁO] Bot đã tử trận! Đang nằm phơi xác tại trận địa...');
         isComboRunning = false; 
         bot.clearControlStates(); 
         if (antiAfkLoop) clearInterval(antiAfkLoop);
@@ -158,12 +152,10 @@ function createBot() {
             return;
         }
 
-        // ÁP DỤNG RECONNECT DELAY Ở ĐÂY
         console.log(`[Mất mạng] Lần rớt thứ ${failCount}. Đợi ${RECONNECT_DELAY / 60000} phút để vào lại...`);
         setTimeout(createBot, RECONNECT_DELAY); 
     });
 
-    // BẮT LỖI KICK CHO CHẮC
     bot.on('kicked', (reason) => {
         console.log(`[SERVER KICK] Lý do: ${reason.toString()}`);
     });
@@ -175,16 +167,15 @@ async function startFarmingProcess(bot) {
     if (isComboRunning) return; 
     isComboRunning = true;
 
-    try {        
+    try {
         bot.setQuickBarSlot(0); 
         await randomSleep(1000, 1500);
 
-        // ==========================================
-        // COMBO MÚA TAY BÌNH THƯỜNG (KHÔNG TIẾN LÙI)
-        // ==========================================
-        bot.setControlState('sneak', true); // Đè Shift
+        // BẮT ĐẦU ĐÈ SHIFT
+        bot.setControlState('sneak', true); 
         await randomSleep(800, 1200); 
         
+        // COMBO TRÁI - PHẢI - PHẢI - PHẢI
         bot.swingArm('right'); 
         await randomSleep(600, 1000);
         bot.activateItem(); 
@@ -194,25 +185,35 @@ async function startFarmingProcess(bot) {
         bot.activateItem(); 
         await randomSleep(1000, 1500);
 
-        bot.setControlState('sneak', false); // Nhả Shift
-        bot.clearControlStates(); // Chắc cú xóa mọi phím di chuyển nếu có kẹt
-        
-        await randomSleep(2000, 3000); 
-        // ==========================================
+        // NHẢ SHIFT NGAY TẠI ĐÂY
+        bot.setControlState('sneak', false);
 
-        bot.chat('/home');
-        await randomSleep(5000, 7000); 
+        bot.chat('/spawn');
+        await randomSleep(8000, 10000); 
+
+ 
+        
+        // Đề phòng hờ, xóa toàn bộ phím đang dính 
+        bot.clearControlStates(); 
+        await randomSleep(2000, 3000); 
+
+        bot.chat('/home'); // Xong combo thì bay về bãi
+        await randomSleep(10000, 12000); 
+        
+        // BƯỚC CUỐI CÙNG: NGỒI XUỐNG VÀ BẬT AUTO KIT
         bot.chat('/sit');
+        console.log('[Farm] Đã đến bãi, ngồi xuống và khởi động Auto Kit (10 phút/lần)!');
 
         failCount = 0; 
 
+        // VÒNG LẶP CHỐNG AFK: ĐÚNG 10 PHÚT GÕ /KIT TANTHU 1 LẦN
         if (antiAfkLoop) clearInterval(antiAfkLoop);
         antiAfkLoop = setInterval(() => {
             if (botState === 'FARMING' && !isComboRunning) {
-                bot.swingArm('right'); 
-                setTimeout(() => { if (bot.chat) bot.chat('/sit'); }, 1000);
+                bot.chat('/kit tanthu');
+                console.log(`[${new Date().toLocaleTimeString()}] [Auto-Kit] Đã gõ /kit tanthu lụm đồ!`);
             }
-        }, 1200000); // 20 phút vung tay 1 lần (theo code gốc của bro)
+        }, 600000); // 600000 ms = đúng 10 phút
         
     } catch (err) {
         console.log('[Farm] Lỗi:', err.message);
@@ -231,7 +232,7 @@ const rl = readline.createInterface({
 
 rl.on('line', (input) => {
     if (currentBot) {
-        currentBot.chat(input); // Gửi nội dung bro gõ vào server Minecraft
+        currentBot.chat(input); 
         console.log(`[Bạn Đã Chat]: ${input}`);
     } else {
         console.log('[Lỗi] Bot chưa vào game, không chat được!');
