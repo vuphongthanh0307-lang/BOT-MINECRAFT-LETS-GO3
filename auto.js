@@ -171,7 +171,8 @@ async function startFarmingProcess(bot) {
         
         bot.setQuickBarSlot(0); 
         await randomSleep(1000, 1500);
-
+        
+        bot.chat('/spawn');
         await randomSleep(6000, 8000); 
 
         bot.setControlState('sneak', true); 
