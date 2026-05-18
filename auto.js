@@ -187,7 +187,26 @@ async function startFarmingProcess(bot) {
     try {
         bot.setQuickBarSlot(0); 
         await randomSleep(7000, 9000);
+        // BAY ĐẾN BÃI TRƯỚC RỒI MỚI MÚA TAY
+        bot.chat('/spawn');
+        await randomSleep(8000, 10000); 
 
+        // ==========================================
+        // BƯỚC MỚI: CTRL + W CHẠY THỤC MẠNG 5 GIÂY
+        // ==========================================
+        console.log('[Farm] Tới Spawn rồi, Ctrl + W phi lên phía trước 5 giây cho thoáng...');
+        
+        // Bật cả 2 phím: W (Tiến lên) và Ctrl (Chạy nhanh)
+        bot.setControlState('forward', true); 
+        bot.setControlState('sprint', true); 
+        
+        // Đợi khoảng 5 giây (5000ms đến 5200ms)
+        await randomSleep(5000, 5200); 
+        
+        // Nhả toàn bộ phím ra để phanh gấp
+        bot.clearControlStates(); 
+        await randomSleep(500, 800); // Khựng lại thở một nhịp rồi mới lom khom múa tay
+        
         // BẮT ĐẦU ĐÈ SHIFT
         bot.setControlState('sneak', true); 
         await randomSleep(800, 1200); 
