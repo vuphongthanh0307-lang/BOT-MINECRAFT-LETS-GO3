@@ -159,12 +159,12 @@ async function startFarmingProcess(bot) {
         
         bot.setQuickBarSlot(0); 
         await randomSleep(1000, 1500);
-
-        bot.chat('/spawn');
-        await randomSleep(6000, 8000); 
-
+        
+        // BẮT ĐẦU ĐÈ SHIFT
         bot.setControlState('sneak', true); 
         await randomSleep(800, 1200); 
+        
+        // COMBO TRÁI - PHẢI - PHẢI - PHẢI
         bot.swingArm('right'); 
         await randomSleep(600, 1000);
         bot.activateItem(); 
@@ -174,9 +174,15 @@ async function startFarmingProcess(bot) {
         bot.activateItem(); 
         await randomSleep(1000, 1500);
 
+        // NHẢ SHIFT NGAY TẠI ĐÂY
+        bot.setControlState('sneak', false);
+    
+         bot.chat('/spawn');
+        await randomSleep(6000, 8000);
+
         bot.clearControlStates(); 
         await randomSleep(2000, 3000); 
-
+        
         bot.chat('/home');
         await randomSleep(5000, 7000); 
         bot.chat('/sit');
