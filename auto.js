@@ -169,8 +169,7 @@ async function startFarmingProcess(bot) {
 
     try {
         bot.setQuickBarSlot(0); 
-        await randomSleep(1000, 1500);
-
+        await randomSleep(10000, 15000);
         // BẮT ĐẦU ĐÈ SHIFT
         bot.setControlState('sneak', true); 
         await randomSleep(800, 1200); 
