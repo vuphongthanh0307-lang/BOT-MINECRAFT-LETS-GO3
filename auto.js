@@ -234,14 +234,7 @@ async function startFarmingProcess(bot) {
         await randomSleep(10000, 12000); // Tăng delay xíu cho map load xong
         
         console.log('[Farm] Đã load map bãi farm, chuẩn bị nhích bước tới...');
-        
-        // BƯỚC CUỐI CÙNG: NHÍCH LÊN TRƯỚC RỒI MỚI NGỒI
-        bot.setControlState('forward', true); // Bắt đầu bước tới
-        
-        // Đợi 500ms (nửa giây) cho nó đi một đoạn ngắn
-        await sleep(500); 
-        
-        bot.clearControlStates(); // Dừng lại
+    
         
         // Đợi thêm 1 giây cho đứng vững rồi mới ngồi (ĐÃ BỔ SUNG LỆNH /SIT)
         await sleep(1000);
