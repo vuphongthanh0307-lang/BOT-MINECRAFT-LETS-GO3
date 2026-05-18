@@ -1,13 +1,13 @@
 const express = require('express');
 const mineflayer = require('mineflayer');
-const readline = require('readline'); 
+const readline = require('readline'); // Kéo thêm module đọc bàn phím
 
-const RECONNECT_DELAY = 180000; // 3 phút vào lại 1 lần (180000 ms)
+const RECONNECT_DELAY = 240000; // 4 phút vào lại 1 lần (theo code bro gửi là 240000)
 
 // TẠO WEB SERVER (CHỐNG SLEEP)
 const app = express();
 const port = process.env.PORT || 3000;
-app.get('/', (req, res) => res.send('Bot 5554 của Wind đang Farm VIP Pro!'));
+app.get('/', (req, res) => res.send('Bot Fonggggg đang Farm VIP Pro!'));
 app.listen(port, () => console.log(`[Web] Server đang chạy trên port ${port}`));
 
 // KHIÊN BẤT TỬ
@@ -31,11 +31,11 @@ function createBot() {
     const bot = mineflayer.createBot({
         host: 'aemine.vn',
         port: 25565,
-        username: 'winlxag5554', 
+        username: 'winlxag5553', 
         version: '1.12.2',
         viewDistance: 'tiny', 
         checkTimeoutInterval: 90000,
-        respawn: false // Nằm im phơi xác
+        respawn: false 
     });
 
     currentBot = bot; 
@@ -139,11 +139,7 @@ function createBot() {
     });
 
     bot.on('death', async () => {
-        if (botState === 'HUB') {
-            console.log('[CẢNH BÁO] Bot chết ở Sảnh (Hub)! Đang nằm phơi xác tại trận địa...');
-        } else {
-            console.log('[CẢNH BÁO] Bot tử trận trong cụm Farm! Vẫn nằm im không làm gì cả...');
-        }
+        console.log('[CẢNH BÁO] Bot đã tử trận! Đang nằm phơi xác tại trận địa...');
         isComboRunning = false; 
         bot.clearControlStates(); 
         if (antiAfkLoop) clearInterval(antiAfkLoop);
@@ -189,21 +185,23 @@ async function startFarmingProcess(bot) {
     isComboRunning = true;
 
     try {
-        bot.chat('/party quit'); 
+        bot.setQuickBarSlot(0); 
         await randomSleep(1500, 2000);
 
-        bot.chat('/party join 18110998125');
-        await randomSleep(2000, 3000); 
-        
-        bot.setQuickBarSlot(0); 
-        await randomSleep(1000, 1500);
-
-
+        // BAY ĐẾN BÃI TRƯỚC RỒI MỚI MÚA TAY
+        bot.chat('/spawn');
         await randomSleep(8000, 10000); 
 
         // ==========================================
-        // COMBO MÚA TAY
+        // BƯỚC MỚI: ĐI LÊN KHOẢNG 2 GIÂY
         // ==========================================
+        console.log('[Farm] Tới Spawn rồi, đi lên phía trước 2 giây cho thoáng...');
+        bot.setControlState('forward', true); // Bắt đầu nhấn phím W
+        await randomSleep(5000, 7000); // Đợi khoảng 2 giây
+        
+        bot.clearControlStates(); // Nhả phím W ra để dừng lại
+        await randomSleep(500, 800); // Khựng lại một nhịp nhỏ cho giống người thật trước khi múa
+        // BẮT ĐẦU ĐÈ SHIFT VÀ MÚA TAY
         bot.setControlState('sneak', true); 
         await randomSleep(800, 1200); 
         
@@ -216,26 +214,28 @@ async function startFarmingProcess(bot) {
         bot.activateItem(); 
         await randomSleep(1000, 1500);
 
-        // ĐÃ FIX: NHẢ SHIFT NGAY TẠI ĐÂY
+        // NHẢ SHIFT NGAY TẠI ĐÂY
         bot.setControlState('sneak', false); 
         bot.clearControlStates(); 
         await randomSleep(2000, 3000); 
-        // ==========================================
 
-        bot.chat('/home');
-        await randomSleep(5000, 7000); 
+        bot.chat('/home'); // Xong combo thì bay về bãi Farm
+        await randomSleep(10000, 12000); 
         
-        // BƯỚC CUỐI CÙNG: NGỒI THIỀN VÀ KHÔNG LÀM GÌ CẢ
+        // BƯỚC CUỐI CÙNG: NGỒI XUỐNG VÀ BẬT AUTO KIT
         bot.chat('/sit');
-        console.log('[Farm] Đã đến bãi, ngồi xuống và... NHẬP ĐỊNH (Không auto kit, không vung tay)!');
+        console.log('[Farm] Đã đến bãi, ngồi xuống và khởi động Auto Kit (10 phút/lần)!');
 
         failCount = 0; 
 
-        // Xóa sổ hoàn toàn vòng lặp chống AFK theo lệnh
-        if (antiAfkLoop) {
-            clearInterval(antiAfkLoop);
-            antiAfkLoop = null; 
-        }
+        // VÒNG LẶP CHỐNG AFK: ĐÚNG 10 PHÚT GÕ /KIT TANTHU 1 LẦN
+        if (antiAfkLoop) clearInterval(antiAfkLoop);
+        antiAfkLoop = setInterval(() => {
+            if (botState === 'FARMING' && !isComboRunning) {
+                bot.chat('/kit tanthu');
+                console.log(`[${new Date().toLocaleTimeString()}] [Auto-Kit] Đã gõ /kit tanthu lụm đồ!`);
+            }
+        }, 600000); // 10 phút
         
     } catch (err) {
         console.log('[Farm] Lỗi:', err.message);
