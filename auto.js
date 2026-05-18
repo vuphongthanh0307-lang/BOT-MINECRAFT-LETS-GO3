@@ -2,12 +2,10 @@ const express = require('express');
 const mineflayer = require('mineflayer');
 const readline = require('readline'); // Kéo thêm module đọc bàn phím
 
-const RECONNECT_DELAY = 200000; // 3 phút vào lại 1 lần
-
 // TẠO WEB SERVER (CHỐNG SLEEP)
 const app = express();
 const port = process.env.PORT || 3000;
-app.get('/', (req, res) => res.send('Bot Fonggggg đang Farm VIP Pro!'));
+app.get('/', (req, res) => res.send('Bot của Wind đang Farm VIP Pro!'));
 app.listen(port, () => console.log(`[Web] Server đang chạy trên port ${port}`));
 
 // KHIÊN BẤT TỬ
@@ -19,7 +17,7 @@ const randomSleep = (min, max) => sleep(Math.floor(Math.random() * (max - min + 
 
 // BIẾN TRẠNG THÁI & NGỦ ĐÔNG
 let botState = 'HUB'; 
-let currentBot; 
+let currentBot; // Biến linh hồn để giữ kết nối Chat
 let clickLoop; 
 let antiAfkLoop; 
 let isLoggingIn = false; 
@@ -31,19 +29,20 @@ function createBot() {
     const bot = mineflayer.createBot({
         host: 'aemine.vn',
         port: 25565,
-        username: 'winlxag5554', 
+        username: 'winlxag5553', 
         version: '1.12.2',
         viewDistance: 'tiny', 
         checkTimeoutInterval: 90000,
         respawn: false 
     });
 
-    currentBot = bot; 
+    currentBot = bot; // Gán linh hồn bot để chát từ xa
 
     // ==========================================
-    // MẮT THẦN: SOI CHAT SERVER
+    // MẮT THẦN: SOI CHAT SERVER (CÓ MÀU NHƯ GAME)
     // ==========================================
     bot.on('message', (jsonMsg) => {
+        // Hàm toAnsi() giúp console hiện màu xanh đỏ tím vàng y xì bảng chat Minecraft
         if (jsonMsg.toAnsi) {
             console.log(jsonMsg.toAnsi());
         } else {
@@ -152,12 +151,8 @@ function createBot() {
             return;
         }
 
-        console.log(`[Mất mạng] Lần rớt thứ ${failCount}. Đợi ${RECONNECT_DELAY / 60000} phút để vào lại...`);
-        setTimeout(createBot, RECONNECT_DELAY); 
-    });
-
-    bot.on('kicked', (reason) => {
-        console.log(`[SERVER KICK] Lý do: ${reason.toString()}`);
+        console.log(`[Mất mạng] Lần rớt thứ ${failCount}. Đợi 2 phút...`);
+        setTimeout(createBot, 120000); 
     });
 
     bot.on('error', err => {});
@@ -168,8 +163,16 @@ async function startFarmingProcess(bot) {
     isComboRunning = true;
 
     try {
+        bot.chat('/party quit'); 
+        await randomSleep(1500, 2000);
+
+        bot.chat('/party join 18110998125');
+        await randomSleep(2000, 3000); 
+        
         bot.setQuickBarSlot(0); 
-        await randomSleep(7000, 9000);
+        await randomSleep(1000, 1500);
+
+        await randomSleep(6000, 8000); 
 
         bot.setControlState('sneak', true); 
         await randomSleep(800, 1200); 
@@ -184,35 +187,21 @@ async function startFarmingProcess(bot) {
 
         bot.clearControlStates(); 
         await randomSleep(2000, 3000); 
-     
-        // Đề phòng hờ, xóa toàn bộ phím đang dính 
-        bot.clearControlStates(); 
-        await randomSleep(2000, 3000); 
 
-        bot.chat('/home'); // Xong combo thì bay về bãi
-        console.log('[Farm] Đã load map bãi farm, chuẩn bị nhích bước tới...');
+        bot.chat('/home');
+        await randomSleep(5000, 7000); 
         
-        // BƯỚC CUỐI CÙNG: NHÍCH LÊN TRƯỚC RỒI MỚI NGỒI
-        bot.setControlState('forward', true); // Bắt đầu bước tới
-        
-        // Đợi 500ms (nửa giây) cho nó đi một đoạn ngắn
-        await sleep(500); 
-        
-        bot.clearControlStates(); // Dừng lại
-        
-        // Đợi thêm 1 giây cho đứng vững rồi mới ngồi
-        await sleep(3000);
+        // BƯỚC CUỐI CÙNG: NGỒI THIỀN VÀ KHÔNG LÀM GÌ CẢ
+        bot.chat('/sit');
+        console.log('[Farm] Đã đến bãi, ngồi xuống và... NHẬP ĐỊNH (Không auto kit, không vung tay)!');
 
         failCount = 0; 
 
-        // VÒNG LẶP CHỐNG AFK: ĐÚNG 10 PHÚT GÕ /KIT TANTHU 1 LẦN
-        if (antiAfkLoop) clearInterval(antiAfkLoop);
-        antiAfkLoop = setInterval(() => {
-            if (botState === 'FARMING' && !isComboRunning) {
-                bot.chat('/kit tanthu');
-                console.log(`[${new Date().toLocaleTimeString()}] [Auto-Kit] Đã gõ /kit tanthu lụm đồ!`);
-            }
-        }, 600000); // 600000 ms = đúng 10 phút
+        // Xóa sổ hoàn toàn vòng lặp chống AFK theo lệnh
+        if (antiAfkLoop) {
+            clearInterval(antiAfkLoop);
+            antiAfkLoop = null; 
+        }
         
     } catch (err) {
         console.log('[Farm] Lỗi:', err.message);
@@ -231,7 +220,7 @@ const rl = readline.createInterface({
 
 rl.on('line', (input) => {
     if (currentBot) {
-        currentBot.chat(input); 
+        currentBot.chat(input); // Gửi nội dung bro gõ vào server Minecraft
         console.log(`[Bạn Đã Chat]: ${input}`);
     } else {
         console.log('[Lỗi] Bot chưa vào game, không chat được!');
