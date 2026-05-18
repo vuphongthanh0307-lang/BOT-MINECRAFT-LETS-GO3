@@ -213,13 +213,13 @@ async function startFarmingProcess(bot) {
         
         // COMBO TRÁI - PHẢI - PHẢI - PHẢI
         bot.swingArm('right'); 
-        await randomSleep(600, 1000);
+        await randomSleep(600, 800);
         bot.activateItem(); 
-        await randomSleep(600, 1000);
+        await randomSleep(600, 700);
         bot.activateItem(); 
-        await randomSleep(600, 1000);
+        await randomSleep(600, 700);
         bot.activateItem(); 
-        await randomSleep(1000, 1500);
+        await randomSleep(600, 700);
 
         // NHẢ SHIFT NGAY TẠI ĐÂY
         bot.setControlState('sneak', false); 
