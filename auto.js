@@ -271,11 +271,11 @@ async function startFarmingProcess(bot) {
 
         bot.setControlState('back', true);
         await sleep(500); 
-        await randomSleep(3000, 4000); 
+        await randomSleep(3000, 3500); 
         bot.clearControlStates(); 
 
         bot.chat('/home'); // Xong combo thì bay về bãi
-        await randomSleep(10000, 12000); 
+        await randomSleep(6000, 7000); 
         
         console.log('[Farm] Đã load map bãi farm, chuẩn bị nhích bước tới...');
         
