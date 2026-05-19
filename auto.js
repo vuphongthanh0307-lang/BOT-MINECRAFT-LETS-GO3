@@ -268,10 +268,11 @@ async function startFarmingProcess(bot) {
         // NHẢ SHIFT NGAY TẠI ĐÂY
         bot.setControlState('sneak', false); 
 
+
+        bot.setControlState('back', true);
+        await sleep(500); 
         await randomSleep(8000, 10000); 
-        
         bot.clearControlStates(); 
-        await randomSleep(2000, 3000); 
 
         bot.chat('/home'); // Xong combo thì bay về bãi
         await randomSleep(10000, 12000); 
@@ -283,7 +284,7 @@ async function startFarmingProcess(bot) {
         await sleep(500); 
         bot.clearControlStates(); 
         
-        await sleep(1000);
+        await sleep(4000);
         bot.chat('/sit');
         console.log('[Farm] Đã nhích đúng vị trí, ngồi xuống nhập định (Không có Auto Kit)!');
 
