@@ -254,7 +254,7 @@ async function startFarmingProcess(bot) {
         // BẮT ĐẦU ĐÈ SHIFT VÀ MÚA TAY
         // ==========================================
         bot.setControlState('sneak', true); 
-        await randomSleep(800, 1200); 
+        await randomSleep(500, 600); 
         
         bot.swingArm('right'); 
         await randomSleep(600, 800);
