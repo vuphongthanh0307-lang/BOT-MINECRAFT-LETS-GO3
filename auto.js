@@ -217,7 +217,7 @@ async function startFarmingProcess(bot) {
 
     try {
         bot.setQuickBarSlot(0); 
-        await randomSleep(7000, 9000);
+        await randomSleep(2000, 3000);
         
         // BAY ĐẾN BÃI TRƯỚC RỒI MỚI MÚA TAY
         bot.chat('/spawn');
