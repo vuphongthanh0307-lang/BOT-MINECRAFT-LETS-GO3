@@ -240,7 +240,22 @@ async function startFarmingProcess(bot) {
 
     try {
         bot.setQuickBarSlot(0); 
-        await randomSleep(7000, 9000);
+        await randomSleep(1000, 1100);
+        // BẮT ĐẦU ĐÈ SHIFT VÀ MÚA TAY
+        bot.setControlState('sneak', true); 
+        await randomSleep(100, 110); 
+        
+        bot.swingArm('right'); 
+        await randomSleep(100, 110);
+        bot.activateItem(); 
+        await randomSleep(100, 110);
+        bot.activateItem(); 
+        await randomSleep((100, 110);
+        bot.activateItem(); 
+        await randomSleep(100, 110);
+
+        // NHẢ SHIFT NGAY TẠI ĐÂY
+        bot.setControlState('sneak', false); 
 
         // BAY ĐẾN BÃI TRƯỚC RỒI MỚI MÚA TAY
         bot.chat('/spawn');
@@ -279,28 +294,7 @@ async function startFarmingProcess(bot) {
         
         // Giữ W + Sprint thêm 1 xíu để nó bay hết đà phát thứ 2 rơi xuống
         await randomSleep(600, 800); 
-        
-        // Phanh gấp bằng phanh ABS
-        bot.clearControlStates(); 
-        console.log('[Farm] Tiếp đất an toàn, đứng yên lấy hơi chuẩn bị múa...');
 
-        await randomSleep(1500, 2000);
-
-        // BẮT ĐẦU ĐÈ SHIFT VÀ MÚA TAY
-        bot.setControlState('sneak', true); 
-        await randomSleep(500, 600); 
-        
-        bot.swingArm('right'); 
-        await randomSleep(600, 1000);
-        bot.activateItem(); 
-        await randomSleep(500, 600);
-        bot.activateItem(); 
-        await randomSleep(500, 600);
-        bot.activateItem(); 
-        await randomSleep(500, 600);
-
-        // NHẢ SHIFT NGAY TẠI ĐÂY
-        bot.setControlState('sneak', false); 
         bot.clearControlStates(); 
         await randomSleep(2000, 3000); 
 
@@ -310,10 +304,10 @@ async function startFarmingProcess(bot) {
         await randomSleep(3000, 5000);
         
         bot.chat('/home'); // Xong combo thì bay về bãi Farm
-        await randomSleep(10000, 12000); 
+        await randomSleep(5000, 6000); 
         
         // BƯỚC CUỐI CÙNG: NGỒI XUỐNG NHẬP ĐỊNH
-        bot.chat('/sit');
+        bot.chat('/lay');
         console.log('[Farm] Đã đến bãi, ngồi xuống nhập định (Tắt Auto Kit)!');
 
         failCount = 0; 
