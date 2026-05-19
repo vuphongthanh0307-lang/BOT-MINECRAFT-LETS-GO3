@@ -221,7 +221,7 @@ async function startFarmingProcess(bot) {
         
         // BAY ĐẾN BÃI TRƯỚC RỒI MỚI MÚA TAY
         bot.chat('/spawn');
-        await randomSleep(8000, 10000); 
+        await randomSleep(5000, 6000); 
 
         // ==========================================
         // BƯỚC MỚI: CTRL + W CHẠY THỤC MẠNG KÈM NHẢY TRONG 4 GIÂY
@@ -271,7 +271,7 @@ async function startFarmingProcess(bot) {
 
         bot.setControlState('back', true);
         await sleep(500); 
-        await randomSleep(8000, 10000); 
+        await randomSleep(3000, 4000); 
         bot.clearControlStates(); 
 
         bot.chat('/home'); // Xong combo thì bay về bãi
