@@ -15,10 +15,13 @@ process.on('unhandledRejection', (err) => console.log('[Khiên Bất Tử] Lỗi
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 const randomSleep = (min, max) => sleep(Math.floor(Math.random() * (max - min + 1) + min));
 
-let botState = 'HUB'; 
+// 3 TRẠNG THÁI RÕ RÀNG: FIRST_LOGIN (Từ ngoài vô), MAINTENANCE (Bảo trì), FARMING (Đang múa)
+let botState = 'FIRST_LOGIN'; 
 let currentBot; 
-let clickLoop; 
+let antiAfkLoop; 
+let isLoggingIn = false; 
 let isComboRunning = false; 
+let isGUIOpen = false; // KHÓA CHỐNG SPAM CLICK MENU
 
 function createBot() {
     const bot = mineflayer.createBot({
@@ -33,35 +36,72 @@ function createBot() {
 
     currentBot = bot; 
 
-    // CẢM BIẾN TÚI ĐỒ (Mắt thần mới)
-    setInterval(() => {
-        if (!bot.inventory) return;
-        const hasCompass = bot.inventory.items().find(i => i.name === 'compass');
-        
-        if (hasCompass && botState === 'FARMING') {
-            botState = 'HUB'; // Bị văng về Hub rồi
-        }
-        
-        if (!hasCompass && botState === 'HUB') {
-            // Đã vào game, bỏ qua la bàn
-            botState = 'FARMING';
-            startFarmingProcess(bot);
-        }
-    }, 5000);
-
     bot.on('spawn', async () => {
-        console.log('[Hub] Đã kết nối, đang đăng nhập...');
-        await sleep(2000);
-        bot.chat('/l Windvu2193'); 
-        
-        // Vẩy la bàn nếu đang ở Hub
-        await sleep(4000);
-        if (botState === 'HUB') startCompassLoop(bot);
+        if (!isLoggingIn) { 
+            isLoggingIn = true;
+            console.log('[Hub] Đã kết nối, đang đăng nhập...');
+            await sleep(2000);
+            bot.chat('/l Windvu2193'); 
+        }
     });
 
+    bot.on('messagestr', (message) => {
+        const lowerMsg = message.toLowerCase();
+
+        // NẾU THẤY BẢO TRÌ -> CHUYỂN SANG CHẾ ĐỘ NẰM IM CHỜ KÉO, TẮT MÚA
+        if (lowerMsg.includes('kicked from') || lowerMsg.includes('bảo trì') || lowerMsg.includes('đã đóng')) {
+            console.log('[Hệ Thống] Phát hiện Bảo Trì! Đang nằm chờ server tự kéo vào (Tắt tự động la bàn)...');
+            botState = 'MAINTENANCE'; 
+            isComboRunning = false;
+            isGUIOpen = false;
+            if (antiAfkLoop) clearInterval(antiAfkLoop);
+        }
+    });
+
+    // ==========================================
+    // MẮT THẦN ĐỌC TÚI ĐỒ ĐỈNH CAO CỦA PHÁP SƯ
+    // ==========================================
+    setInterval(() => {
+        if (!currentBot || !currentBot.inventory) return;
+
+        // Đếm số lượng đồ trong túi (Thanh Hotbar)
+        const itemCount = currentBot.inventory.items().length;
+
+        // 1. NẾU 9 Ô ĐỒ ĐỀU FULL (>= 8 món) -> CHẮC CHẮN ĐANG Ở TRONG GAME
+        if (itemCount >= 8) {
+            botState = 'FARMING';
+            if (!isComboRunning) {
+                console.log('[Mắt Thần] Thấy thanh đồ FULL! Xác nhận đã vào Cụm Farm. Bắt đầu múa!');
+                startFarmingProcess(currentBot);
+            }
+        }
+        // 2. NẾU ĐỒ TRỐNG TRƠN (<= 3 món, chỉ có la bàn) -> ĐANG Ở HUB
+        else if (itemCount > 0 && itemCount <= 3) {
+            // Chỉ vẩy la bàn nếu vô từ NGOÀI (FIRST_LOGIN)
+            if (botState === 'FIRST_LOGIN') {
+                if (!isGUIOpen && !isComboRunning) {
+                    console.log('[Hub] Mới vô từ ngoài! Cầm la bàn đục lỗ...');
+                    currentBot.setQuickBarSlot(4);
+                    currentBot.activateItem();
+                }
+            } 
+            // Nếu là MAINTENANCE thì tuyệt đối KHÔNG làm gì cả, nằm chờ server tự kéo vô đồ full thì tự múa
+            else if (botState === 'MAINTENANCE') {
+                // Nằm im thin thít
+            }
+        }
+    }, 3000); // 3 giây liếc túi đồ 1 lần
+
+    // ==========================================
+    // FIX LỖI SPAM MENU NHƯ TRONG ẢNH
+    // ==========================================
     bot.on('windowOpen', async (window) => {
-        if (botState !== 'HUB') return; 
+        if (botState === 'MAINTENANCE') return; // Bảo trì cấm đụng
+        if (isGUIOpen) return; // Đang click dở thì không mở thêm tab mới (CHỐNG SPAM)
+        
+        isGUIOpen = true; 
         try {
+            console.log('[Menu] Đang mở GUI...');
             await sleep(2000);
             await bot.clickWindow(20, 0, 0); 
             await sleep(2000);
@@ -69,34 +109,31 @@ function createBot() {
             console.log('[Menu] Đã click xong! Chờ server load map...');
         } catch (err) {
             console.log('Lỗi click GUI:', err.message);
+        } finally {
+            isGUIOpen = false; // Nhả khóa ra
         }
     });
 
+    bot.on('death', () => {
+        isComboRunning = false;
+        bot.clearControlStates();
+        if (botState !== 'FARMING') setTimeout(() => bot.respawn(), 2000);
+    });
+
     bot.on('end', () => {
+        isLoggingIn = false;
+        isComboRunning = false;
+        botState = 'FIRST_LOGIN'; // Reset lại trạng thái ban đầu khi rớt mạng
         setTimeout(createBot, RECONNECT_DELAY);
     });
 }
 
-// Hàm vẩy la bàn (Chỉ chạy khi có la bàn trong túi)
-function startCompassLoop(bot) {
-    if (clickLoop) clearInterval(clickLoop);
-    bot.setQuickBarSlot(4); 
-    clickLoop = setInterval(() => {
-        if (botState === 'HUB') {
-            bot.activateItem();
-        } else {
-            clearInterval(clickLoop);
-        }
-    }, 3000);
-}
-
 // ==========================================
-// KỊCH BẢN DI CHUYỂN BẤT KHẢ XÂM PHẠM (GIỮ NGUYÊN)
+// KỊCH BẢN MÚA BẤT KHẢ XÂM PHẠM (GIỮ NGUYÊN 100%)
 // ==========================================
 async function startFarmingProcess(bot) {
     if (isComboRunning) return; 
     isComboRunning = true;
-    console.log('[Farm] Bắt đầu chạy kịch bản múa...');
 
     try {
         bot.chat('/party quit'); await sleep(1500);
@@ -137,6 +174,11 @@ async function startFarmingProcess(bot) {
         bot.chat('/lay');
         
         console.log('[Farm] Đã đến bãi, nằm nghỉ!');
+
+        if (antiAfkLoop) clearInterval(antiAfkLoop);
+        antiAfkLoop = setInterval(() => {
+            if (botState === 'FARMING') bot.chat('/kit tanthu');
+        }, 1200000); 
 
     } catch (err) {
         console.log('[Farm] Lỗi:', err.message);
