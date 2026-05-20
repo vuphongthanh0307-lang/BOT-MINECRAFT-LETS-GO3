@@ -232,7 +232,7 @@ async function startFarmingProcess(bot) {
 
     try {
         bot.setQuickBarSlot(0); 
-        await randomSleep(100, 110);
+        await sleep(300);
         
         // BẮT ĐẦU ĐÈ SHIFT NGAY TẠI CHỖ (KỊCH BẢN CŨ CỦA BRO)
         bot.setControlState('sneak', true); 
