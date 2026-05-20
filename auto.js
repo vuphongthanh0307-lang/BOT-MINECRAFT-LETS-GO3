@@ -151,7 +151,7 @@ async function startFarmingProcess(bot) {
         await sleep(1600);
         bot.clearControlStates(); 
         
-        await sleep(11000);
+        await sleep(5000);
         bot.chat('/home');
         await sleep(6000); 
         bot.chat('/lay');
