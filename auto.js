@@ -124,7 +124,7 @@ async function startFarmingProcess(bot) {
 
     try {
         bot.setQuickBarSlot(0); 
-        await sleep(200);
+        await sleep(1000);
         
         // Múa tay tại chỗ
         bot.setControlState('sneak', true); 
