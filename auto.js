@@ -50,7 +50,7 @@ function createBot() {
 
         // NẾU THẤY BẢO TRÌ -> CHUYỂN SANG CHẾ ĐỘ NẰM IM CHỜ KÉO, TẮT MÚA
         if (lowerMsg.includes('kicked from') || lowerMsg.includes('bảo trì') || lowerMsg.includes('đã đóng')) {
-            console.log('[Hệ Thống] Phát hiện Bảo Trì! Đang nằm chờ server tự kéo vào (Tắt tự động la bàn)...');
+            console.log('[Hệ Thống] Phát hiện Bảo Trì/Kick! Đang nằm chờ server tự kéo vào (Tắt tự động la bàn)...');
             botState = 'MAINTENANCE'; 
             isComboRunning = false;
             isGUIOpen = false;
@@ -59,7 +59,7 @@ function createBot() {
     });
 
     // ==========================================
-    // MẮT THẦN ĐỌC TÚI ĐỒ ĐỈNH CAO CỦA PHÁP SƯ
+    // MẮT THẦN ĐỌC TÚI ĐỒ (ĐÃ FIX LỖI SPAM VÒNG LẶP)
     // ==========================================
     setInterval(() => {
         if (!currentBot || !currentBot.inventory) return;
@@ -69,18 +69,24 @@ function createBot() {
 
         // 1. NẾU 9 Ô ĐỒ ĐỀU FULL (>= 8 món) -> CHẮC CHẮN ĐANG Ở TRONG GAME
         if (itemCount >= 8) {
-            botState = 'FARMING';
-            if (!isComboRunning) {
+            // SỬA LỖI SPAM: Chỉ kích hoạt múa nếu trạng thái HIỆN TẠI không phải là FARMING
+            if (botState !== 'FARMING') {
+                botState = 'FARMING'; // Chốt cửa ngay lập tức
                 console.log('[Mắt Thần] Thấy thanh đồ FULL! Xác nhận đã vào Cụm Farm. Bắt đầu múa!');
                 startFarmingProcess(currentBot);
             }
         }
         // 2. NẾU ĐỒ TRỐNG TRƠN (<= 3 món, chỉ có la bàn) -> ĐANG Ở HUB
         else if (itemCount > 0 && itemCount <= 3) {
+            // Nếu lỡ bị server đá từ bãi Farm về lại Hub thì reset trạng thái để nó biết đường vẩy la bàn
+            if (botState === 'FARMING') {
+                botState = 'FIRST_LOGIN';
+            }
+
             // Chỉ vẩy la bàn nếu vô từ NGOÀI (FIRST_LOGIN)
             if (botState === 'FIRST_LOGIN') {
-                if (!isGUIOpen && !isComboRunning) {
-                    console.log('[Hub] Mới vô từ ngoài! Cầm la bàn đục lỗ...');
+                if (!isGUIOpen) {
+                    console.log('[Hub] Đang ở sảnh! Cầm la bàn đục lỗ...');
                     currentBot.setQuickBarSlot(4);
                     currentBot.activateItem();
                 }
@@ -90,14 +96,14 @@ function createBot() {
                 // Nằm im thin thít
             }
         }
-    }, 3000); // 3 giây liếc túi đồ 1 lần
+    }, 4000); // 4 giây liếc túi đồ 1 lần cho đỡ nặng server
 
     // ==========================================
-    // FIX LỖI SPAM MENU NHƯ TRONG ẢNH
+    // FIX LỖI SPAM MENU GUI
     // ==========================================
     bot.on('windowOpen', async (window) => {
         if (botState === 'MAINTENANCE') return; // Bảo trì cấm đụng
-        if (isGUIOpen) return; // Đang click dở thì không mở thêm tab mới (CHỐNG SPAM)
+        if (isGUIOpen) return; // Đang click dở thì không mở thêm tab mới
         
         isGUIOpen = true; 
         try {
