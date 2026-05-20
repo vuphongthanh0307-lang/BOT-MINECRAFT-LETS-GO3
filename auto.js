@@ -6,7 +6,7 @@ const RECONNECT_DELAY = 240000;
 
 const app = express();
 const port = process.env.PORT || 3000;
-app.get('/', (req, res) => res.send('Bot Fonggggg đang Farm VIP Pro!'));
+app.get('/', (req, res) => res.send('Bot winlxag5554 đang Farm VIP Pro!'));
 app.listen(port, () => console.log(`[Web] Server đang chạy trên port ${port}`));
 
 process.on('uncaughtException', (err) => console.log('[Khiên Bất Tử] Chặn lỗi:', err.message));
@@ -81,11 +81,12 @@ function createBot() {
             }
         }
 
-        // 3. Nhận diện vào game (ĐÃ FIX LỖI SAI TÊN BIẾN Ở ĐÂY)
+        // 3. Nhận diện vào game
         const isJoinMsg = lowerMsg.includes('vừa tham gia máy chủ') && message.includes(bot.username);
         const hasGameMsg = lowerMsg.includes('boss') || lowerMsg.includes('tài xỉu') || lowerMsg.includes('nô lệ');
         
         if (botState !== 'FARMING' && (isJoinMsg || hasGameMsg)) {
+            console.log('[Mắt Thần] Đã vào Game! Chạy kịch bản múa...');
             botState = 'FARMING'; 
             if (clickLoop) clearInterval(clickLoop);
             if (farmTimeout) clearTimeout(farmTimeout);
@@ -103,6 +104,31 @@ function createBot() {
         }
     });
 
+    // ==========================================
+    // SỰ KIỆN WINDOW OPEN (TÍNH NĂNG GUI ÔNG YÊU CẦU ĐÂY)
+    // ==========================================
+    bot.on('windowOpen', async (window) => {
+        if (botState !== 'HUB') return; 
+        botState = 'CLICKING_MENU'; 
+        if (clickLoop) clearInterval(clickLoop);
+
+        try {
+            await sleep(3000); 
+            console.log(`[Menu 1] Nhấp slot 20...`);
+            await bot.clickWindow(20, 0, 0); 
+
+            await sleep(2500); 
+            console.log(`[Menu 2] Nhấp slot 14...`);
+            await bot.clickWindow(14, 0, 0); 
+            
+            console.log('[Menu] Thành công! Đợi load map xác nhận...');
+        } catch (err) {
+            console.log('Lỗi click GUI:', err.message);
+            botState = 'HUB'; 
+        }
+    });
+    // ==========================================
+
     bot.on('death', async () => {
         isComboRunning = false; 
         bot.clearControlStates(); 
@@ -119,6 +145,9 @@ function createBot() {
     });
 }
 
+// ==========================================
+// KỊCH BẢN DI CHUYỂN (GIỮ NGUYÊN 100% CỦA CON 5554)
+// ==========================================
 async function startFarmingProcess(bot) {
     if (isComboRunning) return; 
     isComboRunning = true;
@@ -156,7 +185,8 @@ async function startFarmingProcess(bot) {
         await sleep(1600);
         bot.clearControlStates(); 
         
-        // Lùi xéo (GIỮ NGUYÊN BẢN GỐC CỦA BRO)
+        // Lùi xéo
+        console.log('[Farm] Đang lùi xéo bằng phím A + S trong 0.5 giây...');
         bot.setControlState('back', true); 
         bot.setControlState('left', true); 
         await sleep(500); 
