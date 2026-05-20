@@ -150,7 +150,13 @@ async function startFarmingProcess(bot) {
         }
         await sleep(1600);
         bot.clearControlStates(); 
+        console.log('[Farm] Đang lùi xéo bằng phím D + S trong 0.5 giây...');
+        bot.setControlState('back', true);  // Đè phím S
+        bot.setControlState('left', true); // Đè phím D
         
+        await sleep(500); // Giữ đúng 0.5 giây
+        bot.clearControlStates(); // Nhả cả 2 phím ra để phanh lại
+
         await sleep(5000);
         bot.chat('/home');
         await sleep(6000); 
