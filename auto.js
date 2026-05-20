@@ -81,7 +81,7 @@ function createBot() {
             }
         }
 
-        // 3. Nhận diện vào game
+        // 3. Nhận diện vào game (ĐÃ FIX LỖI SAI TÊN BIẾN Ở ĐÂY)
         const isJoinMsg = lowerMsg.includes('vừa tham gia máy chủ') && message.includes(bot.username);
         const hasGameMsg = lowerMsg.includes('boss') || lowerMsg.includes('tài xỉu') || lowerMsg.includes('nô lệ');
         
@@ -156,7 +156,7 @@ async function startFarmingProcess(bot) {
         await sleep(1600);
         bot.clearControlStates(); 
         
-        // Lùi xéo
+        // Lùi xéo (GIỮ NGUYÊN BẢN GỐC CỦA BRO)
         bot.setControlState('back', true); 
         bot.setControlState('left', true); 
         await sleep(500); 
