@@ -233,26 +233,7 @@ async function startFarmingProcess(bot) {
     try {
         bot.setQuickBarSlot(0); 
         await randomSleep(100, 110);
-        
-        // BẮT ĐẦU ĐÈ SHIFT VÀ MÚA TAY NHANH
-        bot.setControlState('sneak', true); 
-        await randomSleep(100, 110); 
-        
-        bot.swingArm('right'); 
-        await randomSleep(100, 110);
-        bot.activateItem(); 
-        await randomSleep(100, 110);
-        bot.activateItem(); 
-        // Đã gỡ bỏ dấu ngoặc tròn gây lỗi Syntax Error ở đây nhé!
-        await randomSleep(100, 110); 
-        bot.activateItem(); 
-        await randomSleep(100, 110);
 
-        // NHẢ SHIFT NGAY TẠI ĐÂY
-        bot.setControlState('sneak', false); 
-
-        // BAY ĐẾN BÃI TRƯỚC RỒI MỚI MÚA TAY TIẾP THEO KỊCH BẢN MỚI CỦA ÔNG
-        await sleep(25000);
         bot.chat('/spawn');
         await randomSleep(5000, 6000); 
 
@@ -288,9 +269,25 @@ async function startFarmingProcess(bot) {
         await sleep(1600); 
 
         // Phanh gấp, thả hết các nút ra
-        bot.clearControlStates(); 
+        bot.clearControlStates();
+        await sleep(1600);
+        // BẮT ĐẦU ĐÈ SHIFT VÀ MÚA TAY NHANH
+        bot.setControlState('sneak', true); 
+        await randomSleep(500, 600); 
+        bot.swingArm('right'); 
+        await randomSleep(500, 600);
+        bot.activateItem(); 
+        await randomSleep(500, 600);
+        bot.activateItem(); 
+        await randomSleep(500, 600);
+        bot.activateItem(); 
+        await randomSleep(500, 600);
+        bot.setControlState('sneak', false); 
+        await sleep(6000);
         console.log('[Farm] Đã chạy xong 5 giây, phanh lại đứng chờ...');
-        
+        bot.setControlState('forward', true);
+        await sleep(500);
+        bot.clearControlStates();
         // Đứng im đợi 10 - 11 giây trước khi xài lệnh /home
         await randomSleep(5000, 6000);
         
