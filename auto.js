@@ -249,7 +249,7 @@ async function startFarmingProcess(bot) {
         
         // BẮT ĐẦU ĐÈ SHIFT VÀ MÚA TAY NHANH
         bot.setControlState('sneak', true); 
-        await randomSleep(100, 110); 
+        await sleep(200); 
         
         bot.swingArm('right'); 
         await randomSleep(100, 110);
