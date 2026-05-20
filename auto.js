@@ -36,6 +36,17 @@ function createBot() {
 
     currentBot = bot; 
 
+    // ==========================================
+    // CÁI MỒM CỦA BOT (IN LOG GAME RA MÀN HÌNH BẰNG MÀU)
+    // ==========================================
+    bot.on('message', (jsonMsg) => {
+        if (jsonMsg.toAnsi) {
+            console.log(jsonMsg.toAnsi());
+        } else {
+            console.log(jsonMsg.toString());
+        }
+    });
+
     bot.on('spawn', async () => {
         if (!isLoggingIn) { 
             isLoggingIn = true;
@@ -178,7 +189,7 @@ async function startFarmingProcess(bot) {
 
         bot.clearControlStates(); 
         console.log('[Farm] Đã chạy xong 5 giây, phanh lại đứng chờ...');
-        
+        console.log('[Farm] múa tay...');
         // BẮT ĐẦU ĐÈ SHIFT VÀ MÚA TAY NHANH
         bot.setControlState('sneak', true); 
         await randomSleep(100, 110); 
@@ -195,10 +206,12 @@ async function startFarmingProcess(bot) {
         // NHẢ SHIFT NGAY TẠI ĐÂY
         bot.setControlState('sneak', false); 
         await sleep(2000);
+        console.log('[Farm] tiến tới...');
         bot.setControlState('forward', true);
         await sleep(500);
         bot.clearControlStates();
         await sleep(2000);
+        console.log('[Farm] Lại home...');
         bot.chat('/home'); 
         await randomSleep(5000, 6000); 
         
