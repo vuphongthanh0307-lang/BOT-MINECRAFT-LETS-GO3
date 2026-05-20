@@ -269,45 +269,41 @@ async function startFarmingProcess(bot) {
         await randomSleep(5000, 7000); 
 
         // ==========================================
-        // BƯỚC MỚI: LIA CHUỘT TRÁI 72 ĐỘ & PHI THÂN 2 PHÁT
+        // BƯỚC MỚI: CHẠY THẲNG + SPRINT + NHẢY 3 PHÁT TRONG 5 GIÂY
         // ==========================================
-        console.log('[Farm] Tới Spawn rồi, lia chuột 72 độ sang trái...');
+        console.log('[Farm] Tới Spawn rồi, cắm đầu chạy thẳng 5 giây và nhảy 3 phát...');
         
-        const currentYaw = bot.entity.yaw;
-        const targetYaw = currentYaw + (72 * Math.PI / 180); 
-        const currentPitch = bot.entity.pitch; 
-        
-        await bot.look(targetYaw, currentPitch, true); 
-        await randomSleep(300, 500); 
-
-        console.log('[Farm] Vận nội công W + Sprint + Space nhảy liên tiếp 2 phát...');
-        
-        // Bắt đầu đè ga chạy nhanh
+        // Bắt đầu đè ga W và chạy nhanh (Sprint) thẳng tới trước
         bot.setControlState('forward', true);
         bot.setControlState('sprint', true);
         
-        // --- NHẢY PHÁT 1 ---
+        // --- NHẢY PHÁT 1 (Lúc bắt đầu) ---
         bot.setControlState('jump', true); 
-        await sleep(500); // Bay trên không 0.5s
-        bot.setControlState('jump', false); // Nhả Space để tiếp đất
+        await sleep(400); // Bấm Space 0.4s
+        bot.setControlState('jump', false); // Nhả Space
         
-        // Khựng lại xíu cho nó chạm đất lấy đà (vẫn đang đè W chạy nhanh)
-        await randomSleep(300, 400); 
+        await sleep(1100); // Chạy bộ lấy đà 1.1s
 
         // --- NHẢY PHÁT 2 ---
-        bot.setControlState('jump', true); // Đạp đất nảy lên phát 2
-        await sleep(500); // Bay tiếp 0.5s
-        bot.setControlState('jump', false); // Nhả Space ra
+        bot.setControlState('jump', true); 
+        await sleep(400); 
+        bot.setControlState('jump', false); 
         
-        // Giữ W + Sprint thêm 1 xíu để nó bay hết đà phát thứ 2 rơi xuống
-        await randomSleep(600, 800); 
+        await sleep(1100); // Chạy bộ lấy đà 1.1s
 
-        bot.clearControlStates(); 
-        await randomSleep(2000, 3000); 
+        // --- NHẢY PHÁT 3 ---
+        bot.setControlState('jump', true); 
+        await sleep(400); 
+        bot.setControlState('jump', false); 
+        
+        // Chạy thêm nốt phần đà còn lại (1.6s) cho chẵn tổng thời gian 5 giây
+        await sleep(1600); 
 
-        bot.setControlState('forward', true);
-        await sleep(500); 
+        // Phanh gấp, thả hết các nút ra
         bot.clearControlStates(); 
+        console.log('[Farm] Đã chạy xong 5 giây, phanh lại đứng chờ...');
+        
+        // Đứng im đợi 10 - 11 giây trước khi xài lệnh /home
         await randomSleep(10000, 11000);
         
         bot.chat('/home'); // Xong combo thì bay về bãi Farm
