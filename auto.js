@@ -232,94 +232,74 @@ async function startFarmingProcess(bot) {
 
     try {
         bot.setQuickBarSlot(0); 
-        await sleep(300);
+        await randomSleep(100, 110);
         
-        // BẮT ĐẦU ĐÈ SHIFT NGAY TẠI CHỖ (KỊCH BẢN CŨ CỦA BRO)
+        // BẮT ĐẦU ĐÈ SHIFT VÀ MÚA TAY NHANH
         bot.setControlState('sneak', true); 
         await randomSleep(100, 110); 
         
-        // COMBO TRÁI - PHẢI - PHẢI - PHẢI
         bot.swingArm('right'); 
         await randomSleep(100, 110);
         bot.activateItem(); 
         await randomSleep(100, 110);
         bot.activateItem(); 
-        await randomSleep(100, 110);
+        // Đã gỡ bỏ dấu ngoặc tròn gây lỗi Syntax Error ở đây nhé!
+        await randomSleep(100, 110); 
         bot.activateItem(); 
         await randomSleep(100, 110);
 
         // NHẢ SHIFT NGAY TẠI ĐÂY
         bot.setControlState('sneak', false); 
 
-        await sleep(1000);
-        bot.chat('/home');
-        await randomSleep(8000, 10000); 
+        // BAY ĐẾN BÃI TRƯỚC RỒI MỚI MÚA TAY TIẾP THEO KỊCH BẢN MỚI CỦA ÔNG
+        await sleep(25000);
+        bot.chat('/spawn');
+        await randomSleep(5000, 6000); 
+
+        // ==========================================
+        // BƯỚC MỚI: CHẠY THẲNG + SPRINT + NHẢY 3 PHÁT TRONG 5 GIÂY
+        // ==========================================
+        console.log('[Farm] Tới Spawn rồi, cắm đầu chạy thẳng 5 giây và nhảy 3 phát...');
         
+        // Bắt đầu đè ga W và chạy nhanh (Sprint) thẳng tới trước
+        bot.setControlState('forward', true);
+        bot.setControlState('sprint', true);
+        
+        // --- NHẢY PHÁT 1 (Lúc bắt đầu) ---
+        bot.setControlState('jump', true); 
+        await sleep(400); // Bấm Space 0.4s
+        bot.setControlState('jump', false); // Nhả Space
+        
+        await sleep(1100); // Chạy bộ lấy đà 1.1s
+
+        // --- NHẢY PHÁT 2 ---
+        bot.setControlState('jump', true); 
+        await sleep(400); 
+        bot.setControlState('jump', false); 
+        
+        await sleep(1100); // Chạy bộ lấy đà 1.1s
+
+        // --- NHẢY PHÁT 3 ---
+        bot.setControlState('jump', true); 
+        await sleep(400); 
+        bot.setControlState('jump', false); 
+        
+        // Chạy thêm nốt phần đà còn lại (1.6s) cho chẵn tổng thời gian 5 giây
+        await sleep(1600); 
+
+        // Phanh gấp, thả hết các nút ra
         bot.clearControlStates(); 
-        await randomSleep(10000, 11000); 
+        console.log('[Farm] Đã chạy xong 5 giây, phanh lại đứng chờ...');
         
-        console.log('[Farm] Đã load map bãi farm, chuẩn bị hạ góc nhìn...');
+        // Đứng im đợi 10 - 11 giây trước khi xài lệnh /home
+        await randomSleep(5000, 6000);
         
-        // ==========================================
-        // 1. HẠ CHUỘT XUỐNG MỘT TÍ (Khoảng 20 độ)
-        // ==========================================
-        const currentYaw = bot.entity.yaw;
-        const currentPitch = bot.entity.pitch;
+        bot.chat('/home'); // Xong combo thì bay về bãi Farm
+        await randomSleep(5000, 6000); 
         
-        // Trong Mineflayer, cộng thêm góc (Radian) vào pitch sẽ làm camera cúi xuống
-        const targetPitch = currentPitch - (15 * Math.PI / 180); 
-        
-        await bot.look(currentYaw, targetPitch, true); 
-        await sleep(300); // Đợi 0.3s cho camera gật xuống mượt mà
-
-        // ==========================================
-        // 2. LÙI KIỂU D + S LIÊN TỤC TRONG 0.5s
-        // ==========================================
-        console.log('[Farm] Đang lùi xéo bằng phím D + S trong 0.5 giây...');
-        bot.setControlState('left', true);  // Đè phím S
-        bot.setControlState('right', true); // Đè phím D
-        
-        await sleep(500); // Giữ đúng 0.5 giây
-        
-        bot.clearControlStates(); // Nhả cả 2 phím ra để phanh lại
-
-        // ==========================================
-        // 2.5 QUAY TRÁI 30 ĐỘ RỒI ĐI THẲNG 0.3s
-        // ========================================
-
-        console.log('[Farm] Quay trái 30 độ và nhích lên 0.3 giây...');
-        const currentYaw2 = bot.entity.yaw;
-        const targetYaw2 = currentYaw2 + (30 * Math.PI / 180); // + 30 độ là qua trái
-        
-        // Bẻ cổ sang trái 30 độ, giữ nguyên độ cúi (bot.entity.pitch)
-        await bot.look(targetYaw2, bot.entity.pitch, true); 
-        await sleep(200); // Đợi 0.2s cho xoay mượt
-
-        bot.setControlState('forward', true); // Bấm phím W đi thẳng
-        await sleep(600); // Đi trong đúng 0.3s
-        bot.clearControlStates(); // Phanh gấp lại
-
-        await sleep(2000);
-        bot.setControlState('back', true); // Bấm phím W đi thẳng
-        await sleep(400); // Đi trong đúng 0.3s
-        bot.clearControlStates(); // Phanh gấp lại
-        
-        await sleep(400);
-        console.log('[Farm] Đang lùi xéo bằng phím D + S trong 0.5 giây...');
-        bot.setControlState('back', true);  // Đè phím S
-        bot.setControlState('left', true); // Đè phím D
-        
-        await sleep(200); // Giữ đúng 0.5 giây
-        bot.clearControlStates(); // Nhả cả 2 phím ra để phanh lại
-        
-        // ==========================================
-        // 3. CHỜ KHOẢNG 5 GIÂY RỒI MỚI NGỒI
-        // ==========================================
-        console.log('[Farm] Đã lùi xong, đứng im thở 5 giây...');
-        await sleep(6000);
-        
-        bot.chat('/sit');
-        console.log('[Farm] Đã nhích đúng vị trí, ngồi xuống và khởi động Auto Kit (10 phút/lần)!');
+        // BƯỚC CUỐI CÙNG: NGỒI (NẰM) XUỐNG NHẬP ĐỊNH THEO Ý BRO MỚI ĐỔI
+        bot.chat('/lay');
+        console.log('[Farm] Đã đến bãi, nằm sải lai nhập định (Tắt Auto Kit)!');
 
         failCount = 0; 
 
