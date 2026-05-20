@@ -12,16 +12,19 @@ app.listen(port, () => console.log(`[Web] Server đang chạy trên port ${port}
 process.on('uncaughtException', (err) => console.log('[Khiên Bất Tử] Chặn lỗi:', err.message));
 process.on('unhandledRejection', (err) => console.log('[Khiên Bất Tử] Lỗi Promise:', err.message));
 
+// ĐỊNH NGHĨA LẠI HÀM CÒN THIẾU
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
+const randomSleep = (min, max) => sleep(Math.floor(Math.random() * (max - min + 1) + min));
 
+// TRẠNG THÁI BOT
 let botState = 'HUB'; 
 let currentBot; 
 let clickLoop; 
-let antiAfkLoop; 
 let isLoggingIn = false; 
-let isComboRunning = false; 
+let hasStartedFarm = false; // KHÓA CỨNG: Dùng để không bao giờ lặp lại kịch bản
 
 function createBot() {
+    let isLoggingIn = false;
     const bot = mineflayer.createBot({
         host: 'aemine.vn',
         port: 25565,
@@ -40,92 +43,77 @@ function createBot() {
             console.log('[Hub] Đã kết nối, đang đăng nhập...');
             await sleep(2000);
             bot.chat('/l Windvu2193'); 
-            
-            // Chờ 5s cho login xong rồi vẩy la bàn
-            await sleep(5000);
-            if (botState === 'HUB') startCompassLoop(bot);
+        }
+        
+        // Vẩy la bàn nếu đang ở HUB
+        if (botState === 'HUB') {
+            await sleep(4000);
+            startCompassLoop(bot);
         }
     });
 
     bot.on('messagestr', (message) => {
         const lowerMsg = message.toLowerCase();
 
-        // 1. Phát hiện Bảo trì/Kick (Nằm chờ, không làm gì cả)
+        // 1. Bảo trì
         if (lowerMsg.includes('kicked from') || lowerMsg.includes('bảo trì') || lowerMsg.includes('đã đóng')) {
             console.log('[Mắt Thần] Bảo trì! Chuyển chế độ Nằm Chờ...');
             botState = 'MAINTENANCE'; 
             if (clickLoop) clearInterval(clickLoop);
-            isComboRunning = false;
         }
 
-        // 2. Nhận diện VÀO GAME
+        // 2. Nhận diện vào game (ĐÃ THÊM KHÓA hasStartedFarm)
         const isJoinMsg = lowerMsg.includes('vừa tham gia máy chủ') && message.includes(bot.username);
         const hasGameMsg = lowerMsg.includes('boss') || lowerMsg.includes('tài xỉu') || lowerMsg.includes('nô lệ');
         
-        if (botState !== 'FARMING' && (isJoinMsg || hasGameMsg)) {
-            console.log('[Mắt Thần] Đã vào Game! Chạy kịch bản múa...');
+        if (botState !== 'FARMING' && !hasStartedFarm && (isJoinMsg || hasGameMsg)) {
+            console.log('[Mắt Thần] Đã xác nhận lọt vào Game! Chạy kịch bản múa...');
             botState = 'FARMING'; 
+            hasStartedFarm = true; // KHÓA LẠI, KHÔNG LẶP LẠI
             if (clickLoop) clearInterval(clickLoop);
             startFarmingProcess(bot);
         }
     });
 
-    // ==========================================
-    // BỘ CANH GÁC (WATCHDOG): Nếu HUB mà 40s ko thấy GUI thì vẩy lại
-    // ==========================================
-    function startCompassLoop(bot) {
-        if (clickLoop) clearInterval(clickLoop);
-        let ticks = 0;
-        clickLoop = setInterval(() => {
-            if (botState === 'HUB') {
-                bot.setQuickBarSlot(4); // Ép cầm slot 4
-                bot.activateItem();     // Vẩy la bàn
-                ticks++;
-                if (ticks > 12) { // Sau 36s không mở được GUI -> Reset
-                    console.log('[Cảnh báo] Kẹt GUI, vẩy lại từ đầu...');
-                    ticks = 0;
-                }
-            } else {
-                clearInterval(clickLoop);
-            }
-        }, 3000);
-    }
-
     bot.on('windowOpen', async (window) => {
         if (botState !== 'HUB') return; 
-        if (clickLoop) clearInterval(clickLoop);
-        botState = 'WAITING'; // Đang thao tác GUI
-
         try {
-            await sleep(2000);
+            await sleep(3000); 
             await bot.clickWindow(20, 0, 0); 
-            await sleep(2000);
+            await sleep(2500); 
             await bot.clickWindow(14, 0, 0); 
-            console.log('[Menu] Đã click xong! Chờ server load map...');
+            console.log('[Menu] Đã click xong!');
         } catch (err) {
             console.log('Lỗi click GUI:', err.message);
-            botState = 'HUB';
-            startCompassLoop(bot);
         }
     });
 
     bot.on('death', () => {
-        isComboRunning = false;
         bot.clearControlStates();
         if (botState === 'HUB') setTimeout(() => bot.respawn(), 2000);
     });
 
     bot.on('end', () => {
         isLoggingIn = false;
+        hasStartedFarm = false; // Reset khóa khi bot văng mạng
         setTimeout(createBot, RECONNECT_DELAY);
     });
 }
 
+function startCompassLoop(bot) {
+    if (clickLoop) clearInterval(clickLoop);
+    bot.setQuickBarSlot(4); 
+    clickLoop = setInterval(() => {
+        if (botState === 'HUB') {
+            bot.activateItem();
+        } else {
+            clearInterval(clickLoop);
+        }
+    }, 3000);
+}
+
 // KỊCH BẢN CỦA BRO (GIỮ NGUYÊN)
 async function startFarmingProcess(bot) {
-    if (isComboRunning) return; 
-    isComboRunning = true;
-
     try {
         bot.chat('/party quit'); await sleep(1500);
         bot.chat('/party join 18110998125'); await sleep(2000);
@@ -166,15 +154,8 @@ async function startFarmingProcess(bot) {
         
         console.log('[Farm] Đã đến bãi, nằm nghỉ!');
 
-        if (antiAfkLoop) clearInterval(antiAfkLoop);
-        antiAfkLoop = setInterval(() => {
-            if (botState === 'FARMING') bot.chat('/kit tanthu');
-        }, 1200000); 
-
     } catch (err) {
         console.log('[Farm] Lỗi:', err.message);
-    } finally {
-        isComboRunning = false; 
     }
 }
 
