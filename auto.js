@@ -2,7 +2,7 @@ const express = require('express');
 const mineflayer = require('mineflayer');
 const readline = require('readline'); // Kéo thêm module đọc bàn phím
 
-const RECONNECT_DELAY = 240000; // 4 phút vào lại 1 lần
+const RECONNECT_DELAY = 240000; // 5 phút vào lại 1 lần
 
 // TẠO WEB SERVER (CHỐNG SLEEP)
 const app = express();
@@ -28,30 +28,6 @@ let isComboRunning = false;
 let shouldReconnect = true; 
 let failCount = 0; 
 
-// ==========================================
-// HÀM TỰ ĐỘNG VẨY LA BÀN KHÔNG CẦN NHÌN CHAT
-// ==========================================
-function startCompassLoop(bot) {
-    if (clickLoop) clearInterval(clickLoop);
-    bot.setQuickBarSlot(4); 
-    console.log('[Hub] Chủ động cầm La bàn lên vẩy...');
-    let clickCount = 0;
-    clickLoop = setInterval(() => {
-        if (botState === 'HUB') {
-            bot.activateItem(); 
-            clickCount++;
-            if (clickCount >= 8) { // Bấm 8 lần (24s) không hiện Menu thì ép Farm
-                console.log('[Cứu Hộ] Vẩy La Bàn 24s không thấy Menu! Ép buộc khởi động Farm...');
-                clearInterval(clickLoop);
-                botState = 'FARMING';
-                startFarmingProcess(bot);
-            }
-        } else {
-            clearInterval(clickLoop);
-        }
-    }, 3000);
-}
-
 function createBot() {
     const bot = mineflayer.createBot({
         host: 'aemine.vn',
@@ -60,11 +36,14 @@ function createBot() {
         version: '1.12.2',
         viewDistance: 'tiny', 
         checkTimeoutInterval: 90000,
-        respawn: false 
+        respawn: false // Giữ false để tự ấn bằng tay trong code
     });
 
     currentBot = bot; 
 
+    // ==========================================
+    // MẮT THẦN: SOI CHAT SERVER
+    // ==========================================
     bot.on('message', (jsonMsg) => {
         if (jsonMsg.toAnsi) {
             console.log(jsonMsg.toAnsi());
@@ -79,23 +58,43 @@ function createBot() {
             console.log('[Hub] Đã kết nối server, chuẩn bị đăng nhập...');
             await sleep(2000);
             bot.chat('/l Windvu2193'); 
-            console.log('[Hub] Đã gửi lệnh login! Đang đợi load map...');
-            
-            // Đăng nhập xong chờ 4 giây là TỰ ĐỘNG lôi la bàn ra bấm, không chờ lệnh "bạn sở hữu"
-            await sleep(4000);
-            if (botState === 'HUB') {
-                startCompassLoop(bot);
-            }
+            console.log('[Hub] Đã gửi lệnh login! Đang nghe ngóng...');
         }
     });
 
     bot.on('messagestr', (message) => {
         const lowerMsg = message.toLowerCase();
 
+        // ==========================================
+        // MẮT THẦN V5: XỬ LÝ MỌI TÌNH HUỐNG
+        // ==========================================
+        
+        // 1. MỚI JOIN TỪ NGOÀI VÀO -> CẦN BẤM LA BÀN
+        if (botState === 'HUB' && lowerMsg.includes('bạn sở hữu')) {
+            console.log('[Mắt Thần] Mới join từ ngoài vào! Cầm La bàn đục lỗ vô cụm...');
+            bot.setQuickBarSlot(4); 
+            let clickCount = 0;
+            if (clickLoop) clearInterval(clickLoop);
+            clickLoop = setInterval(() => {
+                if (botState === 'HUB') {
+                    console.log(`[Hub] Đang click La bàn...`);
+                    bot.activateItem(); 
+                    clickCount++;
+                    if (clickCount >= 6) {
+                        clearInterval(clickLoop);
+                        botState = 'FARMING';
+                        startFarmingProcess(bot);
+                    }
+                } else {
+                    clearInterval(clickLoop);
+                }
+            }, 3000); 
+        }
+
         // 2. SERVER BẢO TRÌ NÉM VỀ HUB -> TẮT CHẾ ĐỘ CLICK, NẰM CHỜ KÉO
         if (lowerMsg.includes('kicked from') || lowerMsg.includes('bảo trì') || lowerMsg.includes('đã đóng')) {
             if (botState === 'FARMING' || botState === 'HUB') {
-                console.log('[Hệ thống] Server bảo trì ném ra Sảnh! NẰM CHỜ SERVER TỰ KÉO LẠI VÀO (Không bấm la bàn)...');
+                console.log('[Hệ thống] Server bảo trì ném ra Sảnh! CHUYỂN SANG CHẾ ĐỘ NẰM CHỜ SERVER TỰ KÉO LẠI VÀO...');
                 botState = 'WAIT_AUTO'; 
                 isComboRunning = false;
                 if (clickLoop) clearInterval(clickLoop);
@@ -108,7 +107,7 @@ function createBot() {
         const hasJoinMessage = lowerMsg.includes('vừa tham gia máy chủ') && message.includes(bot.username);
         const hasGameMessage = lowerMsg.includes('boss') || lowerMsg.includes('tài xỉu') || lowerMsg.includes('nô lệ') || lowerMsg.includes('thế giới') || lowerMsg.includes('thủ lĩnh');
         
-        if (botState !== 'FARMING' && botState !== 'WAIT_AUTO' && (hasJoinMessage || hasGameMessage)) {
+        if (botState !== 'FARMING' && (hasJoinMessage || hasGameMessage)) {
             console.log(`[Mắt Thần] Đã xác nhận lọt vào Game (Cụm Farm)! Bắt đầu chạy kịch bản múa...`);
             botState = 'FARMING'; 
             
@@ -125,9 +124,20 @@ function createBot() {
                 botState = 'HUB'; 
                 isComboRunning = false;
                 if (farmTimeout) clearTimeout(farmTimeout);
-                startCompassLoop(bot);
+                
+                bot.setQuickBarSlot(4); 
+                if (clickLoop) clearInterval(clickLoop);
+                clickLoop = setInterval(() => {
+                    if (botState === 'HUB') {
+                        bot.activateItem(); 
+                    } else {
+                        clearInterval(clickLoop);
+                    }
+                }, 3000); 
             }
         }
+
+        // ==========================================
 
         if (message.includes('/pt join')) {
             const match = message.match(/\/pt join (\S+)/);
@@ -146,14 +156,13 @@ function createBot() {
             shouldReconnect = false; 
         }
 
-        if (message.includes('không thể ngồi trong không khí') || message.includes('không thể nằm trong không khí')) {
-            setTimeout(() => { if (botState === 'FARMING') bot.chat('/lay'); }, 3000);
+        if (message.includes('không thể ngồi trong không khí')) {
+            setTimeout(() => { if (botState === 'FARMING') bot.chat('/sit'); }, 3000);
         }
     });
 
     bot.on('windowOpen', async (window) => {
         if (botState !== 'HUB') return; 
-        botState = 'CLICKING_MENU'; 
         if (clickLoop) clearInterval(clickLoop);
 
         try {
@@ -169,10 +178,12 @@ function createBot() {
         } catch (err) {
             console.log('Lỗi click GUI:', err.message);
             botState = 'HUB'; 
-            startCompassLoop(bot);
         }
     });
 
+    // ==========================================
+    // SỰ KIỆN TỬ TRẬN: PHÂN BIỆT HUB VÀ FARM
+    // ==========================================
     bot.on('death', async () => {
         isComboRunning = false; 
         bot.clearControlStates(); 
@@ -220,6 +231,7 @@ function createBot() {
 
     bot.on('error', err => {});
 }
+
 
 
 // ==========================================
