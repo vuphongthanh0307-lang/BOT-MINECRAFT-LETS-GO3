@@ -32,16 +32,16 @@ function createBot() {
         username: 'winlxag5555', 
         version: '1.12.2',
         viewDistance: 'tiny', 
-        checkTimeoutInterval: 90000,
-        respawn: false
+        checkTimeoutInterval: 120000,
+        respawn: false 
     });
 
     currentBot = bot; 
 
     bot.on('spawn', async () => {
-        if (botState === 'HUB' && !isLoggingIn) {
+        if (!isLoggingIn) { 
             isLoggingIn = true;
-            console.log('[Hub] Đã vào server, đăng nhập...');
+            console.log('[Hub] Đã kết nối, đang đăng nhập...');
             await sleep(2000);
             bot.chat('/l Windvu2193'); 
         }
@@ -70,27 +70,44 @@ function createBot() {
         }
 
         // 2. Bảo trì
-        if (lowerMsg.includes('kicked from') || lowerMsg.includes('bảo trì')) {
-            if (botState === 'FARMING') {
-                botState = 'HUB';
+        if (lowerMsg.includes('kicked from') || lowerMsg.includes('bảo trì') || lowerMsg.includes('đã đóng')) {
+            if (botState === 'FARMING' || botState === 'HUB') {
+                console.log('[Hệ thống] Bảo trì! Nằm chờ server kéo...');
+                botState = 'WAIT_AUTO'; 
                 isComboRunning = false;
                 if (clickLoop) clearInterval(clickLoop);
                 if (farmTimeout) clearTimeout(farmTimeout);
+                if (antiAfkLoop) clearInterval(antiAfkLoop);
             }
         }
 
         // 3. Nhận diện vào game
-        if (botState !== 'FARMING' && lowerMsg.includes('vừa tham gia máy chủ') && message.includes(bot.username)) {
+        const isJoinMsg = lowerMsg.includes('vừa tham gia máy chủ') && message.includes(bot.username);
+        const hasGameMsg = lowerMsg.includes('boss') || lowerMsg.includes('tài xỉu') || lowerMsg.includes('nô lệ');
+        
+        if (botState !== 'FARMING' && (isJoinMsg || hasGameMsg)) {
             botState = 'FARMING'; 
             if (clickLoop) clearInterval(clickLoop);
             if (farmTimeout) clearTimeout(farmTimeout);
             farmTimeout = setTimeout(() => startFarmingProcess(bot), 3000);
+        }
+
+        // 4. Lỗi kết nối
+        if (lowerMsg.includes('unable to connect')) {
+            if (botState !== 'WAIT_AUTO') { 
+                botState = 'HUB'; 
+                bot.setQuickBarSlot(4); 
+                if (clickLoop) clearInterval(clickLoop);
+                clickLoop = setInterval(() => bot.activateItem(), 3000);
+            }
         }
     });
 
     bot.on('death', async () => {
         isComboRunning = false; 
         bot.clearControlStates(); 
+        if (farmTimeout) clearTimeout(farmTimeout);
+        if (antiAfkLoop) clearInterval(antiAfkLoop);
         if (botState === 'HUB') setTimeout(() => bot.respawn(), 2000); 
     });
 
@@ -107,6 +124,10 @@ async function startFarmingProcess(bot) {
     isComboRunning = true;
 
     try {
+        // Party join
+        bot.chat('/party quit'); await sleep(1500);
+        bot.chat('/party join 18110998125'); await sleep(2000);
+        
         bot.setQuickBarSlot(0); 
         await sleep(1000);
         
@@ -119,11 +140,10 @@ async function startFarmingProcess(bot) {
         bot.activateItem(); await sleep(110);
         bot.setControlState('sneak', false); 
 
-        // Spawn
+        // Spawn + Chạy 5s + 3 Nhảy
         bot.chat('/spawn');
-        await sleep(8000); 
+        await sleep(6000); 
 
-        // Chạy thẳng + 3 Nhảy
         bot.setControlState('forward', true);
         bot.setControlState('sprint', true);
         
@@ -136,10 +156,9 @@ async function startFarmingProcess(bot) {
         await sleep(1600);
         bot.clearControlStates(); 
         
-        // LÙI XÉO THEO YÊU CẦU CỦA BRO
-        console.log('[Farm] Đang lùi xéo bằng phím D + S trong 0.5 giây...');
-        bot.setControlState('back', true);  // Phím S
-        bot.setControlState('left', true); // Phím D
+        // Lùi xéo
+        bot.setControlState('back', true); 
+        bot.setControlState('left', true); 
         await sleep(500); 
         bot.clearControlStates(); 
 
@@ -149,6 +168,16 @@ async function startFarmingProcess(bot) {
         bot.chat('/lay');
         
         console.log('[Farm] Đã đến bãi, nằm nghỉ!');
+
+        // Anti AFK - Gõ Kit 20 phút/lần
+        if (antiAfkLoop) clearInterval(antiAfkLoop);
+        antiAfkLoop = setInterval(() => {
+            if (botState === 'FARMING') {
+                bot.chat('/kit tanthu');
+                console.log('[Anti-AFK] Gõ kit giữ chỗ...');
+            }
+        }, 1200000); 
+
     } catch (err) {
         console.log('[Farm] Lỗi:', err.message);
     } finally {
