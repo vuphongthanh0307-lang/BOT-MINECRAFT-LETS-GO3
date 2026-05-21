@@ -1,12 +1,12 @@
 const express = require('express');
 const mineflayer = require('mineflayer');
-const readline = require('readline'); 
+const readline = require('readline');
 
-const RECONNECT_DELAY = 240000; 
+const RECONNECT_DELAY = 240000;
 
 const app = express();
 const port = process.env.PORT || 3000;
-app.get('/', (req, res) => res.send('Bot Fonggggg đang Farm VIP Pro!'));
+app.get('/', (req, res) => res.send('Bot đang Farm VIP Pro!'));
 app.listen(port, () => console.log(`[Web] Server đang chạy trên port ${port}`));
 
 process.on('uncaughtException', (err) => console.log('[Khiên Bất Tử] Chặn lỗi:', err.message));
@@ -15,13 +15,12 @@ process.on('unhandledRejection', (err) => console.log('[Khiên Bất Tử] Lỗi
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 const randomSleep = (min, max) => sleep(Math.floor(Math.random() * (max - min + 1) + min));
 
-// 3 TRẠNG THÁI RÕ RÀNG: FIRST_LOGIN (Từ ngoài vô), MAINTENANCE (Bảo trì), FARMING (Đang múa)
-let botState = 'FIRST_LOGIN'; 
+let botState = 'FIRST_LOGIN'; // Trạng thái ban đầu
 let currentBot; 
 let antiAfkLoop; 
 let isLoggingIn = false; 
 let isComboRunning = false; 
-let isGUIOpen = false; // KHÓA CHỐNG SPAM CLICK MENU
+let isGUIOpen = false; 
 
 function createBot() {
     const bot = mineflayer.createBot({
@@ -36,17 +35,6 @@ function createBot() {
 
     currentBot = bot; 
 
-    // ==========================================
-    // CÁI MỒM CỦA BOT (IN LOG GAME RA MÀN HÌNH BẰNG MÀU)
-    // ==========================================
-    bot.on('message', (jsonMsg) => {
-        if (jsonMsg.toAnsi) {
-            console.log(jsonMsg.toAnsi());
-        } else {
-            console.log(jsonMsg.toString());
-        }
-    });
-
     bot.on('spawn', async () => {
         if (!isLoggingIn) { 
             isLoggingIn = true;
@@ -56,58 +44,33 @@ function createBot() {
         }
     });
 
-    bot.on('messagestr', (message) => {
-        const lowerMsg = message.toLowerCase();
-
-        // NẾU THẤY BẢO TRÌ -> CHUYỂN SANG CHẾ ĐỘ NẰM IM CHỜ KÉO, TẮT MÚA
-        if (lowerMsg.includes('kicked from') || lowerMsg.includes('bảo trì') || lowerMsg.includes('đã đóng')) {
-            console.log('[Hệ Thống] Phát hiện Bảo Trì! Đang nằm chờ server tự kéo vào (Tắt tự động la bàn)...');
-            botState = 'MAINTENANCE'; 
-            isComboRunning = false;
-            isGUIOpen = false;
-            if (antiAfkLoop) clearInterval(antiAfkLoop);
-        }
-        
-        // KIỂM TRA BỊ KS MẠNG
-        const isKilledByPlayer = message.includes(bot.username) && 
-                                 (lowerMsg.includes('slain by') || 
-                                  lowerMsg.includes('slained by') || 
-                                  lowerMsg.includes('giết'));
-        if (isKilledByPlayer) {
-            console.log('[RÚT LUI KHẨN CẤP] Bị KS! Nằm im chờ kick AFK...');
-        }
-    });
-
     // ==========================================
-    // MẮT THẦN ĐỌC TÚI ĐỒ (Không xài đọc Chat nữa)
-    // ==========================================
-    // ==========================================
-    // MẮT THẦN ĐỌC TÚI ĐỒ (ĐÃ FIX: MỞ KHÓA KHI VÀO GAME)
+    // MẮT THẦN ĐỌC TÚI ĐỒ (BẢN TỰ RESET KHI VÀO LẠI)
     // ==========================================
     setInterval(() => {
         if (!currentBot || !currentBot.inventory) return;
-
         const itemCount = currentBot.inventory.items().length;
 
-        // 1. NẾU 9 Ô ĐỒ ĐỀU FULL (>= 8 món) -> CHẮC CHẮN ĐANG Ở TRONG GAME
+        // 1. Vô cụm Farm: Đồ nhiều (>= 8 món)
         if (itemCount >= 8) {
-            // SỬA LỖI: Chỉ múa nếu trạng thái chưa phải FARMING
+            // Nếu trước đó đang ở Hub hoặc vừa reset, cho phép múa lại
             if (botState !== 'FARMING') {
                 botState = 'FARMING';
-                isComboRunning = false; // <--- DÒNG NÀY QUAN TRỌNG: MỞ KHÓA ĐỂ ĐƯỢC MÚA LẠI
+                isComboRunning = false; // MỞ KHÓA MÚA
                 console.log('[Mắt Thần] Thấy thanh đồ FULL! Xác nhận đã vào Cụm Farm. Bắt đầu múa!');
                 startFarmingProcess(currentBot);
             }
         }
-        // 2. NẾU ĐỒ TRỐNG TRƠN (<= 3 món, có la bàn) -> ĐANG Ở HUB
+        // 2. Ở Hub: Đồ ít (<= 3 món, chỉ có la bàn)
         else if (itemCount > 0 && itemCount <= 3) {
-            // Nếu lỡ đang FARMING mà mất đồ (văng ra Hub) -> Reset về FIRST_LOGIN
+            // Nếu đang ở trạng thái FARMING mà mất đồ (bị kick ra Hub) -> Reset về HUB để vẩy la bàn
             if (botState === 'FARMING') {
-                botState = 'FIRST_LOGIN';
+                botState = 'FIRST_LOGIN'; 
+                isComboRunning = false;
             }
 
             if (botState === 'FIRST_LOGIN') {
-                if (!isGUIOpen && !isComboRunning) {
+                if (!isGUIOpen) {
                     console.log('[Hub] Đang ở sảnh! Cầm la bàn đục lỗ...');
                     currentBot.setQuickBarSlot(4);
                     currentBot.activateItem();
@@ -116,13 +79,8 @@ function createBot() {
         }
     }, 3000); 
 
-    // ==========================================
-    // SỰ KIỆN CLICK MENU GUI
-    // ==========================================
     bot.on('windowOpen', async (window) => {
-        if (botState === 'MAINTENANCE') return; 
         if (isGUIOpen) return; 
-        
         isGUIOpen = true; 
         try {
             console.log('[Menu] Đang mở GUI...');
@@ -130,7 +88,7 @@ function createBot() {
             await bot.clickWindow(20, 0, 0); 
             await sleep(2000);
             await bot.clickWindow(14, 0, 0); 
-            console.log('[Menu] Đã click xong! Chờ server load map...');
+            console.log('[Menu] Đã click xong!');
         } catch (err) {
             console.log('Lỗi click GUI:', err.message);
         } finally {
@@ -139,109 +97,68 @@ function createBot() {
     });
 
     bot.on('death', () => {
-        isComboRunning = false;
         bot.clearControlStates();
         if (botState !== 'FARMING') setTimeout(() => bot.respawn(), 2000);
     });
 
     bot.on('end', () => {
         isLoggingIn = false;
-        isComboRunning = false;
-        botState = 'FIRST_LOGIN'; // Reset về đăng nhập ban đầu
+        botState = 'FIRST_LOGIN';
         setTimeout(createBot, RECONNECT_DELAY);
     });
 }
 
-// ==========================================
-// KỊCH BẢN DI CHUYỂN MỚI NHẤT CỦA ÔNG (GIỮ NGUYÊN)
-// ==========================================
+// KỊCH BẢN DI CHUYỂN (GIỮ NGUYÊN 100%)
 async function startFarmingProcess(bot) {
     if (isComboRunning) return; 
     isComboRunning = true;
+    console.log('[Farm] Bắt đầu kịch bản...');
 
     try {
-        bot.setQuickBarSlot(0); 
-        await randomSleep(100, 110);
+        bot.chat('/party quit'); await sleep(1500);
+        bot.chat('/party join 18110998125'); await sleep(2000);
+        
+        bot.setQuickBarSlot(0); await randomSleep(100, 110);
+        
+        bot.setControlState('sneak', true); await randomSleep(100, 110); 
+        bot.swingArm('right'); await randomSleep(100, 110);
+        bot.activateItem(); await randomSleep(100, 110);
+        bot.activateItem(); await randomSleep(100, 110);
+        bot.activateItem(); await randomSleep(100, 110);
+        bot.setControlState('sneak', false); 
 
-        // BAY ĐẾN BÃI TRƯỚC RỒI MỚI MÚA TAY TIẾP THEO KỊCH BẢN MỚI CỦA ÔNG
         await sleep(25000);
-        bot.chat('/spawn');
-        await randomSleep(5000, 6000); 
+        bot.chat('/spawn'); await sleep(6000); 
 
-        // ==========================================
-        // BƯỚC MỚI: CHẠY THẲNG + SPRINT + NHẢY 3 PHÁT TRONG 5 GIÂY
-        // ==========================================
-        console.log('[Farm] Tới Spawn rồi, cắm đầu chạy thẳng 5 giây và nhảy 3 phát...');
         bot.setControlState('forward', true);
         bot.setControlState('sprint', true);
         
-        // Nhảy phát 1
-        bot.setControlState('jump', true); 
-        await sleep(400); 
-        bot.setControlState('jump', false); 
-        await sleep(1100); 
-
-        // Nhảy phát 2
-        bot.setControlState('jump', true); 
-        await sleep(400); 
-        bot.setControlState('jump', false); 
-        await sleep(1100); 
-
-        // Nhảy phát 3
-        bot.setControlState('jump', true); 
-        await sleep(400); 
-        bot.setControlState('jump', false); 
-        
-        await sleep(1600); 
-
+        for(let i=0; i<3; i++) {
+            bot.setControlState('jump', true);
+            await sleep(400);
+            bot.setControlState('jump', false);
+            await sleep(1100);
+        }
+        await sleep(1600);
         bot.clearControlStates(); 
-        console.log('[Farm] Đã chạy xong 5 giây, phanh lại đứng chờ...');
-        console.log('[Farm] múa tay...');
-        // BẮT ĐẦU ĐÈ SHIFT VÀ MÚA TAY NHANH
-        bot.setControlState('sneak', true); 
-        await randomSleep(100, 110); 
         
-        bot.swingArm('right'); 
-        await randomSleep(100, 110);
-        bot.activateItem(); 
-        await randomSleep(100, 110);
-        bot.activateItem(); 
-        await randomSleep(100, 110);
-        bot.activateItem(); 
-        await randomSleep(100, 110);
+        console.log('[Farm] Đang lùi xéo...');
+        bot.setControlState('back', true); 
+        bot.setControlState('left', true); 
+        await sleep(500); 
+        bot.clearControlStates(); 
 
-        // NHẢ SHIFT NGAY TẠI ĐÂY
-        bot.setControlState('sneak', false); 
-        await sleep(2000);
-        console.log('[Farm] tiến tới...');
-        bot.setControlState('forward', true);
-        await sleep(500);
-        bot.clearControlStates();
-        await sleep(2000);
-        console.log('[Farm] Lại home...');
-        bot.chat('/home'); 
-        await randomSleep(5000, 6000); 
-        
-        // BƯỚC CUỐI CÙNG: NGỒI (NẰM) XUỐNG
+        await sleep(5000);
+        bot.chat('/home');
+        await sleep(6000); 
         bot.chat('/lay');
-        console.log('[Farm] Đã đến bãi, nằm sải lai nhập định!');
+        
+        console.log('[Farm] Đã đến bãi, nằm nghỉ!');
 
     } catch (err) {
         console.log('[Farm] Lỗi:', err.message);
-    } finally {
-        // Tui tháo cái isComboRunning = false ra để nó KHÔNG lặp lại lần 2 nhé
+        isComboRunning = false; // Nếu lỗi múa thì mở khóa cho lần sau
     }
 }
-
-// ==========================================
-// TÍNH NĂNG CHAT TỪ REPLIT VÀO GAME
-// ==========================================
-const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
-rl.on('line', (input) => { 
-    if (currentBot) {
-        currentBot.chat(input); 
-        console.log(`[Bạn Đã Chat]: ${input}`);
-    } 
-});
 
 createBot();
