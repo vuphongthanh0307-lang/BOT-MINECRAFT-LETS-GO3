@@ -15,9 +15,9 @@ process.on('unhandledRejection', (err) => console.log('[Khiên Bất Tử] Lỗi
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 const randomSleep = (min, max) => sleep(Math.floor(Math.random() * (max - min + 1) + min));
 
-let botState = 'FIRST_LOGIN'; // Trạng thái ban đầu
+// 3 TRẠNG THÁI RÕ RÀNG
+let botState = 'FIRST_LOGIN'; 
 let currentBot; 
-let antiAfkLoop; 
 let isLoggingIn = false; 
 let isComboRunning = false; 
 let isGUIOpen = false; 
@@ -35,12 +35,31 @@ function createBot() {
 
     currentBot = bot; 
 
+    // ==========================================
+    // MẮT THẦN ĐỌC LOG: ĐÃ GẮN LẠI "MỒM" CHO BOT
+    // ==========================================
+    bot.on('message', (jsonMsg) => {
+        // In ra log màu mè y hệt game
+        if (jsonMsg.toAnsi) console.log(jsonMsg.toAnsi());
+        else console.log(jsonMsg.toString());
+    });
+
     bot.on('spawn', async () => {
         if (!isLoggingIn) { 
             isLoggingIn = true;
             console.log('[Hub] Đã kết nối, đang đăng nhập...');
             await sleep(2000);
             bot.chat('/l Windvu2193'); 
+        }
+    });
+
+    // Xử lý sự kiện Server Kick/Bảo trì
+    bot.on('messagestr', (message) => {
+        const lowerMsg = message.toLowerCase();
+        if (lowerMsg.includes('kicked from') || lowerMsg.includes('bảo trì') || lowerMsg.includes('đã đóng')) {
+            console.log('[Hệ Thống] Phát hiện Bảo Trì! Đang nằm chờ...');
+            botState = 'MAINTENANCE'; 
+            isComboRunning = false;
         }
     });
 
@@ -61,9 +80,9 @@ function createBot() {
                 startFarmingProcess(currentBot);
             }
         }
-        // 2. Ở Hub: Đồ ít (<= 3 món, chỉ có la bàn)
+        // 2. Ở Hub: Đồ ít (<= 3 món, có la bàn)
         else if (itemCount > 0 && itemCount <= 3) {
-            // Nếu đang ở trạng thái FARMING mà mất đồ (bị kick ra Hub) -> Reset về HUB để vẩy la bàn
+            // Nếu đang ở trạng thái FARMING mà mất đồ -> Reset về HUB
             if (botState === 'FARMING') {
                 botState = 'FIRST_LOGIN'; 
                 isComboRunning = false;
@@ -112,27 +131,19 @@ function createBot() {
 async function startFarmingProcess(bot) {
     if (isComboRunning) return; 
     isComboRunning = true;
-    console.log('[Farm] Bắt đầu kịch bản...');
 
     try {
-        bot.chat('/party quit'); await sleep(1500);
-        bot.chat('/party join 18110998125'); await sleep(2000);
-        
-        bot.setQuickBarSlot(0); await randomSleep(100, 110);
-        
-        bot.setControlState('sneak', true); await randomSleep(100, 110); 
-        bot.swingArm('right'); await randomSleep(100, 110);
-        bot.activateItem(); await randomSleep(100, 110);
-        bot.activateItem(); await randomSleep(100, 110);
-        bot.activateItem(); await randomSleep(100, 110);
-        bot.setControlState('sneak', false); 
+        bot.setQuickBarSlot(0); 
+        await randomSleep(100, 110);
 
+        // BAY ĐẾN BÃI
         await sleep(25000);
-        bot.chat('/spawn'); await sleep(6000); 
+        bot.chat('/spawn');
+        await randomSleep(5000, 6000); 
 
+        // CHẠY + NHẢY 3 PHÁT
         bot.setControlState('forward', true);
         bot.setControlState('sprint', true);
-        
         for(let i=0; i<3; i++) {
             bot.setControlState('jump', true);
             await sleep(400);
@@ -142,23 +153,31 @@ async function startFarmingProcess(bot) {
         await sleep(1600);
         bot.clearControlStates(); 
         
-        console.log('[Farm] Đang lùi xéo...');
-        bot.setControlState('back', true); 
-        bot.setControlState('left', true); 
-        await sleep(500); 
-        bot.clearControlStates(); 
+        bot.setControlState('sneak', true); await randomSleep(100, 110); 
+        bot.swingArm('right'); await randomSleep(100, 110);
+        bot.activateItem(); await randomSleep(100, 110);
+        bot.activateItem(); await randomSleep(100, 110);
+        bot.activateItem(); await randomSleep(100, 110);
+        bot.setControlState('sneak', false); 
 
-        await sleep(5000);
-        bot.chat('/home');
-        await sleep(6000); 
-        bot.chat('/lay');
+        await sleep(2000);
+        bot.setControlState('forward', true);
+        await sleep(500);
+        bot.clearControlStates();
+        await sleep(2000);
+        bot.chat('/home'); 
+        await randomSleep(5000, 6000); 
         
+        bot.chat('/lay');
         console.log('[Farm] Đã đến bãi, nằm nghỉ!');
 
     } catch (err) {
         console.log('[Farm] Lỗi:', err.message);
-        isComboRunning = false; // Nếu lỗi múa thì mở khóa cho lần sau
+        isComboRunning = false; 
     }
 }
+
+const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+rl.on('line', (input) => { if (currentBot) currentBot.chat(input); });
 
 createBot();
