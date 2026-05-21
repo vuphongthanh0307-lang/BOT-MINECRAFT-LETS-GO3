@@ -81,6 +81,9 @@ function createBot() {
     // ==========================================
     // MẮT THẦN ĐỌC TÚI ĐỒ (Không xài đọc Chat nữa)
     // ==========================================
+    // ==========================================
+    // MẮT THẦN ĐỌC TÚI ĐỒ (ĐÃ FIX: MỞ KHÓA KHI VÀO GAME)
+    // ==========================================
     setInterval(() => {
         if (!currentBot || !currentBot.inventory) return;
 
@@ -88,16 +91,21 @@ function createBot() {
 
         // 1. NẾU 9 Ô ĐỒ ĐỀU FULL (>= 8 món) -> CHẮC CHẮN ĐANG Ở TRONG GAME
         if (itemCount >= 8) {
-            // Chốt chặn cứng: Chỉ múa nếu trạng thái chưa phải FARMING
+            // SỬA LỖI: Chỉ múa nếu trạng thái chưa phải FARMING
             if (botState !== 'FARMING') {
                 botState = 'FARMING';
+                isComboRunning = false; // <--- DÒNG NÀY QUAN TRỌNG: MỞ KHÓA ĐỂ ĐƯỢC MÚA LẠI
                 console.log('[Mắt Thần] Thấy thanh đồ FULL! Xác nhận đã vào Cụm Farm. Bắt đầu múa!');
                 startFarmingProcess(currentBot);
             }
         }
         // 2. NẾU ĐỒ TRỐNG TRƠN (<= 3 món, có la bàn) -> ĐANG Ở HUB
         else if (itemCount > 0 && itemCount <= 3) {
-            // Chỉ vẩy la bàn nếu vô từ NGOÀI (FIRST_LOGIN)
+            // Nếu lỡ đang FARMING mà mất đồ (văng ra Hub) -> Reset về FIRST_LOGIN
+            if (botState === 'FARMING') {
+                botState = 'FIRST_LOGIN';
+            }
+
             if (botState === 'FIRST_LOGIN') {
                 if (!isGUIOpen && !isComboRunning) {
                     console.log('[Hub] Đang ở sảnh! Cầm la bàn đục lỗ...');
@@ -105,7 +113,6 @@ function createBot() {
                     currentBot.activateItem();
                 }
             } 
-            // Nếu là MAINTENANCE thì tuyệt đối KHÔNG làm gì cả, nằm chờ server tự kéo vô
         }
     }, 3000); 
 
