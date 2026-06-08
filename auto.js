@@ -47,7 +47,7 @@ function createBot() {
     const bot = mineflayer.createBot({
         host: 'aemine.vn',
         port: 25565,
-        username: 'Fonggggg', 
+        username: 'Fonggggg', // ĐỔI THÀNH winlxag5555 NẾU CHẠY FILE 5555 NHA
         version: '1.12.2',
         viewDistance: 'tiny', 
         checkTimeoutInterval: 60000,
@@ -99,10 +99,19 @@ function createBot() {
             isSonarKick = true; // Bật cờ dự phòng
         }
 
-        // 2. BẢO TRÌ/KICK -> NẰM CHỜ
+        // --- BỘ LỌC TỰ ĐỘNG JOIN PARTY ---
+        if (message.includes('/pt join')) {
+            const match = message.match(/\/pt join (\S+)/);
+            if (match) {
+                console.log(`[Party] Phát hiện lời mời từ anh em: ${match[1]}! Đang quất lệnh join...`);
+                setTimeout(() => bot.chat(`/party join ${match[1]}`), 500);
+            }
+        }
+
+        // 2. BẢO TRÌ/KICK -> ÉP VỀ SẢNH ĐỂ BẤM LA BÀN
         if (lowerMsg.includes('kicked from') || lowerMsg.includes('bảo trì') || lowerMsg.includes('đã đóng')) {
-            console.log('[Hệ Thống] Phát hiện Bảo Trì/Kick! Đang nằm chờ server tự kéo...');
-            botState = 'MAINTENANCE'; 
+            console.log('[Hệ Thống] Phát hiện bị ném ra Sảnh! Tự động lôi la bàn ra đục lỗ vô lại...');
+            botState = 'IN_HUB'; // Cập nhật tính năng Tự Kéo
             isComboRunning = false; 
         }
 
@@ -120,7 +129,7 @@ function createBot() {
         }
 
         // ==============================================================
-        // MẮT THẦN VÀO GAME (CHUẨN 100% TỪ HÌNH ẢNH CỦA ÔNG)
+        // MẮT THẦN VÀO GAME
         // ==============================================================
         if (lowerMsg.includes('vừa tham gia máy chủ') && lowerMsg.includes(bot.username.toLowerCase())) {
             if (botState !== 'FARMING') {
@@ -134,12 +143,13 @@ function createBot() {
     });
 
     // ==========================================
-    // LA BÀN CHỈ DÙNG ĐỂ CLICK HUB, CẤM DÙNG ĐỂ MÚA
+    // LA BÀN TỰ ĐỘNG: CỨ Ở HUB LÀ TỰ BẤM
     // ==========================================
     setInterval(() => {
         if (!currentBot || !currentBot.inventory) return;
         
-        if (botState === 'FARMING') return; 
+        // Đang Farm hoặc đang bị Sonar soi thì tuyệt đối không bấm Menu
+        if (botState === 'FARMING' || botState === 'WAIT_AUTO') return; 
 
         const items = currentBot.inventory.items();
         const hasCompass = items.some(i => i.name === 'compass');
@@ -147,7 +157,7 @@ function createBot() {
         if (hasCompass) {
             botState = 'IN_HUB'; 
             if (!isGUIOpen) {
-                console.log('[Hub] Đang cầm La Bàn Sảnh! Tiến hành click Menu...');
+                console.log('[Hub] Đang cầm La Bàn Sảnh! Tiến hành click Menu (Tự túc)...');
                 currentBot.setQuickBarSlot(4);
                 currentBot.activateItem();
             }
@@ -155,7 +165,7 @@ function createBot() {
     }, 3000); 
 
     bot.on('windowOpen', async (window) => {
-        if (isGUIOpen || botState === 'MAINTENANCE') return; 
+        if (isGUIOpen || botState === 'WAIT_AUTO') return; 
         isGUIOpen = true; 
         try {
             console.log('[Menu] Đang mở GUI...');
@@ -205,7 +215,7 @@ function createBot() {
         botState = 'DISCONNECTED'; 
 
         // ==========================================
-        // BƯỚC 3: ĐẾM NGƯỢC 12 GIÂY CHO RENDER KHỎI NGỦ + SERVER KỊP LƯU IP
+        // BƯỚC 3: ĐẾM NGƯỢC 12 GIÂY CHO RENDER KHỎI NGỦ
         // ==========================================
         if (isSonarKick) {
             isSonarKick = false; // Trả lại cờ
@@ -222,7 +232,7 @@ function createBot() {
                     console.log(`[Anti-Bot] Hết giờ! Phi thẳng vô cụm lượm lúa!!!`);
                     createBot();
                 }
-            }, 1000); // Lặp lại mỗi 1 giây
+            }, 1000); 
             return; 
         }
 
@@ -230,7 +240,7 @@ function createBot() {
         if (failCount >= 5) {
             console.log(`[BÁO ĐỘNG] Rớt mạng ${failCount} lần! Ngủ đông 1 tiếng tránh bị Ban...`);
             failCount = 0; 
-            setTimeout(createBot, 30000); 
+            setTimeout(createBot, 40000); 
             return;
         }
         console.log(`[Mất mạng] Lần rớt thứ ${failCount}. Đợi vào lại...`);
