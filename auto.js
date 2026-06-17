@@ -219,7 +219,7 @@ function createBot() {
 }
 
 // ==================================================
-// KỊCH BẢN CẦN THỦ (AUTO CÂU CÁ SIÊU MƯỢT)
+// KỊCH BẢN CẦN THỦ (KHÔNG BẺ CỔ, GIỮ NGUYÊN GÓC /HOME)
 // ==================================================
 async function startFishingProcess(bot) {
     if (isComboRunning) return; 
@@ -233,14 +233,14 @@ async function startFishingProcess(bot) {
         bot.chat('/home'); 
         await sleep(6000); // Đợi load map bãi câu
 
-        console.log('[Câu Cá] Tới hồ rồi! Bắt đầu móc giun...');
+        console.log('[Câu Cá] Tới hồ rồi! Đợi tí lấy hơi rồi móc giun...');
+        await sleep(2000); // Đợi tí theo ý pháp sư
 
         // VÒNG LẶP CÂU CÁ
         while (botState === 'FARMING') {
-            // Tìm cần câu trong túi (Kể cả bị hỏng dần nó vẫn tự xài được nếu trùng tên)
             const fishingRod = bot.inventory.items().find(item => item.name === 'fishing_rod');
             if (!fishingRod) {
-                console.log('>>> [Hết Cần] Bị gãy cần hoặc chưa có cần câu! Đứng ngáp chờ... (Ông vô check túi đi)');
+                console.log('>>> [Hết Cần] Không thấy cần câu! Đứng ngáp chờ... (Kiểm tra rương/túi đồ)');
                 await sleep(10000);
                 continue; 
             }
@@ -249,28 +249,32 @@ async function startFishingProcess(bot) {
             await bot.equip(fishingRod, 'hand');
 
             try {
+                // Nghỉ tay ngẫu nhiên 0.3s -> 0.8s (Chống Anti-Cheat thời gian)
+                await randomSleep(300, 800); 
+
                 console.log('[Câu Cá] 🎣 Đang quăng mồi... Chờ cá cắn!');
                 
-                // bot.fish() tự động: quăng -> chờ phao lún -> giật cần
-                await bot.fish();
+                // bot.fish() sẽ lo việc chờ phao chìm và giật
+                await bot.fish(); 
                 
-                console.log('[Câu Cá] 🐟 LỤM CÁ! Dính rồi! Tiếp tục...');
+                console.log('[Câu Cá] 🐟 LỤM CÁ! Dính rồi! Đang gỡ cá...');
                 failCount = 0; 
                 
-                await sleep(800); // Thở 0.8 giây trước khi ném mẻ mới
+                // Nghỉ xả hơi ngẫu nhiên từ 0.8s -> 1.8s rồi mới ném tiếp
+                await randomSleep(800, 1800); 
+
             } catch (err) {
-                console.log('[Câu Cá] Rớt mồi hoặc lag mạng. Đang thử quăng lại...', err.message);
-                await sleep(2000);
+                console.log('[Câu Cá] Rớt mồi hoặc đứt dây. Nghỉ ngơi tí rồi quăng lại...', err.message);
+                await randomSleep(1500, 2500);
             }
         }
 
     } catch (err) {
-        console.log('[Câu Cá] Lỗi:', err.message);
+        console.log('[Câu Cá] Lỗi Kịch Bản:', err.message);
     } finally {
         isComboRunning = false; 
     }
 }
-
 // ==========================================
 // TÍNH NĂNG VÔ LĂNG LÁI XE VÀ CHAT TỪ REPLIT
 // ==========================================
