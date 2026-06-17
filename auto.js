@@ -25,7 +25,7 @@ const RECONNECT_DELAY = 20000;
 
 const app = express();
 const port = process.env.PORT || 3000;
-app.get('/', (req, res) => res.send('Bot Conchohieungu đang Câu Cá VIP Pro!'));
+app.get('/', (req, res) => res.send('Bot Cần Thủ FaiDepTrong đang Câu Cá VIP Pro!'));
 app.listen(port, () => console.log(`[Web] Server đang chạy trên port ${port}`));
 
 process.on('uncaughtException', (err) => console.log('[Khiên Bất Tử] Chặn lỗi:', err.message));
@@ -42,6 +42,7 @@ let isComboRunning = false;
 let isGUIOpen = false; 
 let failCount = 0;
 let isSonarKick = false; 
+let sonarInterval = null; 
 
 function createBot() {
     const bot = mineflayer.createBot({
@@ -55,6 +56,18 @@ function createBot() {
     });
 
     currentBot = bot; 
+
+    // Bắt gói tin disconnect để check xem có phải bị đá do XÁC MINH THÀNH CÔNG không
+    bot.once('login', () => {
+        bot._client.on('disconnect', (packet) => {
+            try {
+                const reason = JSON.stringify(packet.reason);
+                if (reason.includes('xác minh') || reason.includes('thành công')) {
+                    isSonarKick = true;
+                }
+            } catch (e) {}
+        });
+    });
 
     bot.on('message', (jsonMsg) => {
         if (jsonMsg.toAnsi) originalLog('[Chat] ' + jsonMsg.toAnsi());
@@ -87,11 +100,34 @@ function createBot() {
             setTimeout(() => bot.chat('/dn Windvu2193'), 1500); 
         }
 
+        // ==========================================
+        // BƯỚC 1: NHẬN DIỆN SONAR ĐANG QUÉT & LẮC CHUỘT
+        // ==========================================
         if (lowerMsg.includes('sonar') && lowerMsg.includes('xác minh')) {
-            console.log('>>> [Anti-Bot] Bị Sonar soi! Đứng im như tượng chờ nó cấp giấy chứng nhận...');
+            console.log('>>> [Anti-Bot] Bị Sonar soi! Kích hoạt tà thuật rung lắc 20Hz...');
             bot.clearControlStates();
             botState = 'WAIT_AUTO';
             isSonarKick = true; 
+
+            if (sonarInterval) clearInterval(sonarInterval);
+
+            sonarInterval = setInterval(() => {
+                if (botState === 'WAIT_AUTO' && bot._client && bot.entity && bot.entity.position) {
+                    try {
+                        const jitterYaw = bot.entity.yaw + (Math.random() - 0.5) * 0.05;
+                        const jitterPitch = bot.entity.pitch + (Math.random() - 0.5) * 0.05;
+
+                        bot._client.write('position_look', {
+                            x: bot.entity.position.x,
+                            y: bot.entity.position.y,
+                            z: bot.entity.position.z,
+                            yaw: jitterYaw,
+                            pitch: jitterPitch,
+                            onGround: true
+                        });
+                    } catch (e) {}
+                }
+            }, 50); 
         }
 
         if (message.includes('/pt join')) {
@@ -188,6 +224,11 @@ function createBot() {
         isLoggingIn = false;
         botState = 'DISCONNECTED'; 
 
+        if (sonarInterval) {
+            clearInterval(sonarInterval);
+            sonarInterval = null;
+        }
+
         if (isSonarKick) {
             isSonarKick = false; 
             failCount = 0; 
@@ -219,9 +260,9 @@ function createBot() {
 }
 
 // ==================================================
-// KỊCH BẢN CẦN THỦ (KHÔNG BẺ CỔ, GIỮ NGUYÊN GÓC /HOME)
+// KỊCH BẢN CẦN THỦ (DỰA VÀO GÓC /SETHOME CỦA SERVER)
 // ==================================================
-async function startFishingProcess(bot) {
+async function startFarmingProcess(bot) {
     if (isComboRunning) return; 
     isComboRunning = true;
 
@@ -234,7 +275,7 @@ async function startFishingProcess(bot) {
         await sleep(6000); // Đợi load map bãi câu
 
         console.log('[Câu Cá] Tới hồ rồi! Đợi tí lấy hơi rồi móc giun...');
-        await sleep(2000); // Đợi tí theo ý pháp sư
+        await sleep(2000); 
 
         // VÒNG LẶP CÂU CÁ
         while (botState === 'FARMING') {
@@ -275,6 +316,7 @@ async function startFishingProcess(bot) {
         isComboRunning = false; 
     }
 }
+
 // ==========================================
 // TÍNH NĂNG VÔ LĂNG LÁI XE VÀ CHAT TỪ REPLIT
 // ==========================================
