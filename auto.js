@@ -51,9 +51,12 @@ function createBot() {
         port: 25565,
         username: 'FaiDepTrong', 
         version: '1.12.2',
-        viewDistance: 'tiny', 
+        viewDistance: 'lowest',      // Đã xóa cái 'tiny' thừa
         checkTimeoutInterval: 60000,
-        respawn: false 
+        respawn: false,
+        physicsEnabled: false,       // Tắt vật lý hoàn toàn
+        skipValidation: true,        // Bỏ qua xác thực gói tin
+        hideErrors: true             // Giảm log = giảm băng thông
     });
 
     currentBot = bot; 
