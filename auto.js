@@ -1,6 +1,7 @@
 const express = require('express');
 const mineflayer = require('mineflayer');
 const readline = require('readline');
+const { HttpProxyAgent } = require('http-proxy-agent');
 
 // ==========================================
 // BĂNG DÍNH 3 LỚP: DÁN MỒM LỖI CHUNK NGỨA MẮT
@@ -23,6 +24,10 @@ console.error = function(...args) {
 
 const RECONNECT_DELAY = 20000; 
 
+// KHỞI TẠO ĐƯỜNG ỐNG PROXY UK
+const proxyUrl = 'http://vttqdtuk:qvuhif49r0cb@31.59.20.176:6754';
+const proxyAgent = new HttpProxyAgent(proxyUrl);
+
 const app = express();
 const port = process.env.PORT || 3000;
 app.get('/', (req, res) => res.send('Bot FaiDepTrong đang Câu Cá VIP Pro!'));
@@ -38,12 +43,11 @@ const randomSleep = (min, max) => sleep(Math.floor(Math.random() * (max - min + 
 let botState = 'DISCONNECTED'; 
 let currentBot; 
 let isLoggingIn = false; 
-let isComboRunning = false; 
 let isGUIOpen = false; 
 let failCount = 0;
 let isSonarKick = false; 
 let sonarInterval = null; 
-let rotateInterval = null; // Biến quản lý môtơ xoay vòng tròn
+let rotateInterval = null; 
 
 function createBot() {
     const bot = mineflayer.createBot({
@@ -51,17 +55,16 @@ function createBot() {
         port: 25565,
         username: 'FaiDepTrong', 
         version: '1.12.2',
-        viewDistance: 'lowest',      // Đã xóa cái 'tiny' thừa
+        agent: proxyAgent,           
+        viewDistance: 'tiny',      
         checkTimeoutInterval: 60000,
-        respawn: false,
-        physicsEnabled: false,       // Tắt vật lý hoàn toàn
-        skipValidation: true,        // Bỏ qua xác thực gói tin
-        hideErrors: true             // Giảm log = giảm băng thông
+        respawn: false
     });
 
     currentBot = bot; 
+    bot.isRecasting = false;     
+    bot.isFishingActive = false; 
 
-    // Bắt gói tin disconnect để check xem có phải bị đá do XÁC MINH THÀNH CÔNG không
     bot.once('login', () => {
         bot._client.on('disconnect', (packet) => {
             try {
@@ -81,11 +84,94 @@ function createBot() {
     bot.on('spawn', async () => {
         if (!isLoggingIn) { 
             isLoggingIn = true;
-            console.log('[Hub] Đã kết nối server, chuẩn bị đăng nhập...');
+            console.log('[Hub] Đã kết nối qua Proxy UK, chuẩn bị đăng nhập...');
             await sleep(2000);
             bot.chat('/dn Windvu2193'); 
             console.log('[Hub] Đã gửi lệnh login! Đang nghe ngóng...');
             botState = 'FIRST_LOGIN';
+        }
+    });
+
+    // ===================================================
+    // GIÁM SÁT PHAO CÂU: BỎ CẢNH BÁO & KIỂM TRA VA CHẠM
+    // ===================================================
+    let bobberEntity = null;
+
+    bot.on('entitySpawn', (entity) => {
+        if (entity.name === 'fishing_bobber' || entity.name === 'fishing_hook' || entity.displayName === 'Fishing Float') {
+            if (entity.position.distanceTo(bot.entity.position) < 3) {
+                bobberEntity = entity;
+
+                setTimeout(() => {
+                    if (!bobberEntity || botState !== 'FARMING' || !bot._client) return;
+
+                    const pos = bobberEntity.position;
+
+                    // 1. Kiểm tra va chạm trực tiếp với thực thể/item
+                    const hitEntity = Object.values(bot.entities).find(e => {
+                        if (e.id === bot.entity.id || e.id === bobberEntity.id) return false;
+
+                        const isTargetType = e.type === 'player' || 
+                                             e.type === 'mob' || 
+                                             e.name === 'item' || 
+                                             e.type === 'item' || 
+                                             e.displayName === 'Item';
+
+                        if (!isTargetType) return false;
+
+                        const dx = e.position.x - pos.x;
+                        const dz = e.position.z - pos.z;
+                        const horizontalDist = Math.sqrt(dx * dx + dz * dz);
+                        const dy = pos.y - e.position.y; 
+
+                        if (e.type === 'player' || e.type === 'mob') {
+                            return horizontalDist < 1.2 && dy >= -0.5 && dy <= 2.2;
+                        }
+
+                        return e.position.distanceTo(pos) < 1.0;
+                    });
+
+                    // 2. Kiểm tra xem phao có ở trong nước không
+                    const blockCurrent = bot.blockAt(pos);
+                    const blockBelow = bot.blockAt(pos.offset(0, -1, 0));
+
+                    if (!blockCurrent || !blockBelow) {
+                        console.log('[Câu Cá] Chunks chưa load hoàn chỉnh, tạm bỏ qua kiểm tra nước...');
+                        return;
+                    }
+
+                    const isWater = (b) => b && b.name && b.name.toLowerCase().includes('water');
+                    const inWater = isWater(blockCurrent) || isWater(blockBelow);
+
+                    if (hitEntity) {
+                        const targetName = hitEntity.username || hitEntity.displayName || hitEntity.name || 'Không rõ';
+                        console.log(`>>> [CẢNH BÁO] Phao dính vào thực thể/vật phẩm: ${targetName}! Đang thu cần quăng lại gấp...`);
+                        bot.isRecasting = true; 
+                        try {
+                            bot.activateItem(); 
+                        } catch (e) {
+                            console.log('Lỗi khi thu cần:', e.message);
+                        }
+                    } else if (!inWater) {
+                        const blockName = blockBelow ? blockBelow.name : (blockCurrent ? blockCurrent.name : 'Không khí');
+                        console.log(`>>> [CẢNH BÁO] Phao rơi nhầm chỗ (${blockName})! Thu cần quăng lại gấp...`);
+                        bot.isRecasting = true; 
+                        try {
+                            bot.activateItem(); 
+                        } catch (e) {
+                            console.log('Lỗi khi thu cần:', e.message);
+                        }
+                    } else {
+                        console.log('[Câu Cá] Phao đã tiếp nước chuẩn xác!');
+                    }
+                }, 1500);
+            }
+        }
+    });
+
+    bot.on('entityGone', (entity) => {
+        if (bobberEntity && entity.id === bobberEntity.id) {
+            bobberEntity = null;
         }
     });
 
@@ -104,9 +190,6 @@ function createBot() {
             setTimeout(() => bot.chat('/dn Windvu2193'), 1500); 
         }
 
-        // ==========================================
-        // BƯỚC 1: NHẬN DIỆN SONAR ĐANG QUÉT & LẮC CHUỘT
-        // ==========================================
         if (lowerMsg.includes('sonar') && lowerMsg.includes('xác minh')) {
             console.log('>>> [Anti-Bot] Bị Sonar soi! Kích hoạt tà thuật rung lắc 20Hz...');
             bot.clearControlStates();
@@ -145,7 +228,7 @@ function createBot() {
         if (lowerMsg.includes('kicked from') || lowerMsg.includes('bảo trì') || lowerMsg.includes('đã đóng')) {
             console.log('[Hệ Thống] Phát hiện bị ném ra Sảnh! Tự động lôi la bàn ra đục lỗ...');
             botState = 'IN_HUB'; 
-            isComboRunning = false; 
+            bot.isFishingActive = false; 
             if (rotateInterval) { clearInterval(rotateInterval); rotateInterval = null; }
         }
 
@@ -155,6 +238,7 @@ function createBot() {
                                   lowerMsg.includes('giết'));
         if (isKilledByPlayer) {
             console.log('[RÚT LUI KHẨN CẤP] Bị Giết! Nằm im chờ server kick AFK...');
+            bot.isFishingActive = false;
             if (rotateInterval) { clearInterval(rotateInterval); rotateInterval = null; }
         }
 
@@ -162,7 +246,6 @@ function createBot() {
             if (botState !== 'FARMING') {
                 console.log(`[Mắt Thần] ĐÃ LỌT VÀO CỤM CHƠI! Khóa Hub, Xách cần đi câu!`);
                 botState = 'FARMING';
-                isComboRunning = false; 
                 startFishingProcess(bot);
             }
         }
@@ -217,7 +300,7 @@ function createBot() {
 
     bot.on('death', () => {
         bot.clearControlStates();
-        isComboRunning = false;
+        bot.isFishingActive = false;
         if (rotateInterval) { clearInterval(rotateInterval); rotateInterval = null; }
 
         if (botState !== 'FARMING') {
@@ -231,6 +314,7 @@ function createBot() {
         console.log('[SERVER] Đã bị văng hẳn khỏi cụm máy chủ!');
         isLoggingIn = false;
         botState = 'DISCONNECTED'; 
+        bot.isFishingActive = false;
 
         if (sonarInterval) { clearInterval(sonarInterval); sonarInterval = null; }
         if (rotateInterval) { clearInterval(rotateInterval); rotateInterval = null; }
@@ -269,8 +353,8 @@ function createBot() {
 // KỊCH BẢN CẦN THỦ (AUTO XOAY VÒNG + CÂU CÁ)
 // ==================================================
 async function startFishingProcess(bot) {
-    if (isComboRunning) return; 
-    isComboRunning = true;
+    if (bot.isFishingActive) return; 
+    bot.isFishingActive = true;
 
     try {
         bot.setQuickBarSlot(0); 
@@ -278,7 +362,7 @@ async function startFishingProcess(bot) {
         
         console.log('[Câu Cá] Đang phi về bãi (/home)...');
         bot.chat('/home'); 
-        await sleep(6000); // Đợi load map bãi câu
+        await sleep(6000); 
 
         console.log('[Câu Cá] Tới hồ rồi! Bật môtơ tự động xoay và móc giun...');
         await sleep(2000); 
@@ -286,16 +370,15 @@ async function startFishingProcess(bot) {
         // --- BẬT MÔTƠ XOAY VÒNG TRÒN TỰ ĐỘNG ---
         if (rotateInterval) clearInterval(rotateInterval);
         rotateInterval = setInterval(() => {
-            // Chỉ xoay khi đang đứng câu
-            if (botState === 'FARMING' && bot && bot.entity) {
-                const speed = 2; // Độ xoay chậm chậm thôi cho chuẩn (số càng to xoay càng nhanh)
+            if (botState === 'FARMING' && bot && bot.entity && bot.isFishingActive) {
+                const speed = 20; 
                 const radChange = (speed * Math.PI / 180) * 0.1;
                 bot.look(bot.entity.yaw - radChange, bot.entity.pitch, false);
             }
-        }, 50); // Cập nhật mượt 20 lần/giây
+        }, 50); 
 
         // --- VÒNG LẶP CÂU CÁ ---
-        while (botState === 'FARMING') {
+        while (botState === 'FARMING' && bot.isFishingActive && bot._client) {
             const fishingRod = bot.inventory.items().find(item => item.name === 'fishing_rod');
             if (!fishingRod) {
                 console.log('>>> [Hết Cần] Không thấy cần câu! Đứng ngáp chờ... (Kiểm tra rương/túi đồ)');
@@ -303,39 +386,40 @@ async function startFishingProcess(bot) {
                 continue; 
             }
 
-            // Cầm cần lên
             await bot.equip(fishingRod, 'hand');
 
             try {
-                // Nghỉ tay ngẫu nhiên 0.3s -> 0.8s (Chống Anti-Cheat thời gian)
                 await randomSleep(300, 800); 
 
                 console.log('[Câu Cá] 🎣 Đang quăng mồi (Vừa xoay vừa quăng)... Chờ cá cắn!');
-                
-                // bot.fish() sẽ lo việc chờ phao chìm và giật
                 await bot.fish(); 
                 
                 console.log('[Câu Cá] 🐟 LỤM CÁ! Dính rồi! Đang gỡ cá...');
                 failCount = 0; 
                 
-                // Nghỉ xả hơi ngẫu nhiên từ 0.8s -> 1.8s rồi mới ném tiếp
                 await randomSleep(800, 1800); 
 
             } catch (err) {
-                console.log('[Câu Cá] Rớt mồi hoặc đứt dây. Nghỉ ngơi tí rồi quăng lại...', err.message);
-                await randomSleep(1500, 2500);
+                if (bot.isRecasting) {
+                    bot.isRecasting = false; 
+                    console.log('[Câu Cá] Thu cần xong. Chuẩn bị quăng lại ngay lập tức...');
+                    await sleep(500); 
+                } else {
+                    console.log('[Câu Cá] Rớt mồi hoặc đứt dây. Nghỉ ngơi tí rồi quăng lại...', err.message);
+                    await randomSleep(1500, 2500);
+                }
             }
         }
 
     } catch (err) {
         console.log('[Câu Cá] Lỗi Kịch Bản:', err.message);
     } finally {
-        isComboRunning = false; 
+        bot.isFishingActive = false; 
     }
 }
 
 // ==========================================
-// TÍNH NĂNG VÔ LĂNG LÁI XE VÀ CHAT TỪ REPLIT
+// CHAT TỪ REPLIT (ĐÃ LƯỢC BỎ DI CHUYỂN WASD)
 // ==========================================
 let lastChatTime = 0;
 const rl = readline.createInterface({
@@ -350,74 +434,9 @@ rl.on('line', async (input) => {
     }
 
     const rawInput = input.trim();
-    const cmdParts = rawInput.toLowerCase().split(/\s+/); 
-    const cmd = cmdParts[0]; 
-    const val = cmdParts[1]; 
+    if (!rawInput) return;
 
     try {
-        if (cmd === '/stop') { 
-            currentBot.clearControlStates();
-            if (rotateInterval) { clearInterval(rotateInterval); rotateInterval = null; } 
-            console.log('>> [WASD] PHANH GẤP! Đã tắt môtơ xoay và dừng di chuyển.'); 
-            return; 
-        }
-        if (cmd === '/stand') { 
-            currentBot.setControlState('sneak', true); 
-            setTimeout(() => currentBot.setControlState('sneak', false), 300); 
-            console.log('>> [HÀNH ĐỘNG] ĐỨNG DẬY!'); 
-            return; 
-        }
-
-        // Lệnh xoay camera thủ công
-        const degrees = val ? parseFloat(val) : null;
-        if (cmd === '/trai' || cmd === '/trái') { 
-            const angle = degrees !== null ? degrees : 90;
-            await currentBot.look(currentBot.entity.yaw + (angle * Math.PI / 180), currentBot.entity.pitch, false); 
-            console.log(`>> [CAMERA] Quay TRÁI ${angle} độ`); return; 
-        }
-        if (cmd === '/phai' || cmd === '/phải') { 
-            const angle = degrees !== null ? degrees : 90;
-            await currentBot.look(currentBot.entity.yaw - (angle * Math.PI / 180), currentBot.entity.pitch, false); 
-            console.log(`>> [CAMERA] Quay PHẢI ${angle} độ`); return; 
-        }
-        if (cmd === '/sau') { 
-            await currentBot.look(currentBot.entity.yaw + Math.PI, currentBot.entity.pitch, false); 
-            console.log('>> [CAMERA] Quay SAU 180 độ'); return; 
-        }
-        if (cmd === '/len' || cmd === '/lên') { 
-            const angle = degrees !== null ? degrees : 45;
-            const newPitch = Math.max(-Math.PI/2, currentBot.entity.pitch - (angle * Math.PI / 180));
-            await currentBot.look(currentBot.entity.yaw, newPitch, false); 
-            console.log(`>> [CAMERA] Ngước LÊN ${angle} độ`); return; 
-        }
-        if (cmd === '/xuong' || cmd === '/xuống') { 
-            const angle = degrees !== null ? degrees : 45;
-            const newPitch = Math.min(Math.PI/2, currentBot.entity.pitch + (angle * Math.PI / 180));
-            await currentBot.look(currentBot.entity.yaw, newPitch, false); 
-            console.log(`>> [CAMERA] Cúi XUỐNG ${angle} độ`); return; 
-        }
-
-        const moveKeys = cmd.replace('/', '');
-        if (/^(w|a|s|d|j|sh)+$/.test(moveKeys)) {
-            currentBot.clearControlStates();
-            let logMsg = ">> [WASD] Di chuyển:";
-            if (moveKeys.includes('w')) { currentBot.setControlState('forward', true); logMsg += ' Tiến'; }
-            if (moveKeys.includes('s')) { currentBot.setControlState('back', true); logMsg += ' Lùi'; }
-            if (moveKeys.includes('a')) { currentBot.setControlState('left', true); logMsg += ' Trái'; }
-            if (moveKeys.includes('d')) { currentBot.setControlState('right', true); logMsg += ' Phải'; }
-            if (moveKeys.includes('sh')) { currentBot.setControlState('sneak', true); logMsg += ' (Shift)'; }
-            if (moveKeys.includes('j')) { currentBot.setControlState('jump', true); logMsg += ' + Nhảy'; }
-
-            const duration = val ? parseFloat(val) : null;
-            if (duration) {
-                console.log(`${logMsg} (Trong ${duration}ms)`);
-                setTimeout(() => currentBot.clearControlStates(), duration);
-            } else {
-                console.log(`${logMsg} (Vô cực)`);
-            }
-            return;
-        }
-
         if (rawInput.startsWith('/')) {
             currentBot.chat(rawInput);
             console.log(`[Bot Đã Gõ Lệnh]: ${rawInput}`);
