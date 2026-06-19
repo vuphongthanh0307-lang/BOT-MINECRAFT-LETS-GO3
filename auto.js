@@ -50,7 +50,6 @@ function createBot() {
         port: 25565,
         username: 'FaiDepTrong', 
         version: '1.12.2',
-        agent: proxyAgent,           
         viewDistance: 'tiny',      
         checkTimeoutInterval: 60000,
         respawn: false
@@ -79,7 +78,7 @@ function createBot() {
     bot.on('spawn', async () => {
         if (!isLoggingIn) { 
             isLoggingIn = true;
-            console.log('[Hub] Đã kết nối qua Proxy UK, chuẩn bị đăng nhập...');
+            console.log('[Hub] Đã kết nối, chuẩn bị đăng nhập...');
             await sleep(2000);
             bot.chat('/dn Windvu2193'); 
             console.log('[Hub] Đã gửi lệnh login! Đang nghe ngóng...');
@@ -229,8 +228,8 @@ function createBot() {
 
         const isKilledByPlayer = message.includes(bot.username) && 
                                  (lowerMsg.includes('slain by') || 
-                                  lowerMsg.includes('slained by') || 
-                                  lowerMsg.includes('giết'));
+                                 lowerMsg.includes('slained by') || 
+                                 lowerMsg.includes('giết'));
         if (isKilledByPlayer) {
             console.log('[RÚT LUI KHẨN CẤP] Bị Giết! Nằm im chờ server kick AFK...');
             bot.isFishingActive = false;
@@ -344,9 +343,6 @@ function createBot() {
     });
 }
 
-// ==================================================
-// KỊCH BẢN CẦN THỦ (AUTO XOAY VÒNG + CÂU CÁ)
-// ==================================================
 async function startFishingProcess(bot) {
     if (bot.isFishingActive) return; 
     bot.isFishingActive = true;
@@ -362,7 +358,6 @@ async function startFishingProcess(bot) {
         console.log('[Câu Cá] Tới hồ rồi! Bật môtơ tự động xoay và móc giun...');
         await sleep(2000); 
 
-        // --- BẬT MÔTƠ XOAY VÒNG TRÒN TỰ ĐỘNG ---
         if (rotateInterval) clearInterval(rotateInterval);
         rotateInterval = setInterval(() => {
             if (botState === 'FARMING' && bot && bot.entity && bot.isFishingActive) {
@@ -372,7 +367,6 @@ async function startFishingProcess(bot) {
             }
         }, 50); 
 
-        // --- VÒNG LẶP CÂU CÁ ---
         while (botState === 'FARMING' && bot.isFishingActive && bot._client) {
             const fishingRod = bot.inventory.items().find(item => item.name === 'fishing_rod');
             if (!fishingRod) {
@@ -413,9 +407,6 @@ async function startFishingProcess(bot) {
     }
 }
 
-// ==========================================
-// CHAT TỪ REPLIT (ĐÃ LƯỢC BỎ DI CHUYỂN WASD)
-// ==========================================
 let lastChatTime = 0;
 const rl = readline.createInterface({
     input: process.stdin,
