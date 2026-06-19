@@ -1,7 +1,6 @@
 const express = require('express');
 const mineflayer = require('mineflayer');
 const readline = require('readline');
-const { HttpProxyAgent } = require('http-proxy-agent');
 
 // ==========================================
 // BĂNG DÍNH 3 LỚP: DÁN MỒM LỖI CHUNK NGỨA MẮT
@@ -23,10 +22,6 @@ console.error = function(...args) {
 };
 
 const RECONNECT_DELAY = 20000; 
-
-// KHỞI TẠO ĐƯỜNG ỐNG PROXY UK
-const proxyUrl = 'http://vttqdtuk:qvuhif49r0cb@31.59.20.176:6754';
-const proxyAgent = new HttpProxyAgent(proxyUrl);
 
 const app = express();
 const port = process.env.PORT || 3000;
