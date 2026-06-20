@@ -219,11 +219,16 @@ function createBot() {
             }
         }
 
+        // =========================================================================
+        // [CẬP NHẬT 1]: NẾU BỊ ĐÁ RA SẢNH THÌ RESET BỘ NHỚ KẸT PHAO + THU CẦN AN TOÀN
+        // =========================================================================
         if (lowerMsg.includes('kicked from') || lowerMsg.includes('bảo trì') || lowerMsg.includes('đã đóng')) {
-            console.log('[Hệ Thống] Phát hiện bị ném ra Sảnh! Tự động lôi la bàn ra đục lỗ...');
+            console.log('[Hệ Thống] Phát hiện bị ném ra Sảnh! Dọn dẹp tàn dư và lôi la bàn ra đục lỗ...');
             botState = 'IN_HUB'; 
             bot.isFishingActive = false; 
+            bot.isRecasting = false; // Xóa trạng thái kẹt phao
             if (rotateInterval) { clearInterval(rotateInterval); rotateInterval = null; }
+            try { bot.activateItem(); } catch (e) {} // Ép thu cần nếu bị kẹt
         }
 
         const isKilledByPlayer = message.includes(bot.username) && 
@@ -233,13 +238,24 @@ function createBot() {
         if (isKilledByPlayer) {
             console.log('[RÚT LUI KHẨN CẤP] Bị Giết! Nằm im chờ server kick AFK...');
             bot.isFishingActive = false;
+            bot.isRecasting = false;
             if (rotateInterval) { clearInterval(rotateInterval); rotateInterval = null; }
         }
 
+        // =========================================================================
+        // [CẬP NHẬT 2]: BỘ THANH TẨY KHI VỪA VÀO LẠI MÁY CHỦ (SAU BẢO TRÌ/RESET)
+        // =========================================================================
         if (lowerMsg.includes('vừa tham gia máy chủ') && lowerMsg.includes(bot.username.toLowerCase())) {
             if (botState !== 'FARMING') {
-                console.log(`[Mắt Thần] ĐÃ LỌT VÀO CỤM CHƠI! Khóa Hub, Xách cần đi câu!`);
+                console.log(`[Mắt Thần] ĐÃ LỌT VÀO CỤM CHƠI! Thanh tẩy trạng thái, Xách cần đi câu!`);
                 botState = 'FARMING';
+                
+                // --- BỘ THANH TẨY TRẠNG THÁI ---
+                bot.isFishingActive = false;     // Reset luồng câu
+                bot.isRecasting = false;         // Xóa sạch trí nhớ kẹt phao
+                bot.clearControlStates();        // Thả hết nút WASD đang kẹt
+                if (rotateInterval) { clearInterval(rotateInterval); rotateInterval = null; }
+                
                 startFishingProcess(bot);
             }
         }
@@ -295,6 +311,7 @@ function createBot() {
     bot.on('death', () => {
         bot.clearControlStates();
         bot.isFishingActive = false;
+        bot.isRecasting = false;
         if (rotateInterval) { clearInterval(rotateInterval); rotateInterval = null; }
 
         if (botState !== 'FARMING') {
@@ -309,6 +326,7 @@ function createBot() {
         isLoggingIn = false;
         botState = 'DISCONNECTED'; 
         bot.isFishingActive = false;
+        bot.isRecasting = false;
 
         if (sonarInterval) { clearInterval(sonarInterval); sonarInterval = null; }
         if (rotateInterval) { clearInterval(rotateInterval); rotateInterval = null; }
